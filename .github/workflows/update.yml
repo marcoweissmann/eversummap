@@ -2,8 +2,11 @@ name: Update sales data
 
 on:
   schedule:
-    - cron: "0 13 * * *"   
+    - cron: "0 5 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
 
@@ -13,21 +16,15 @@ jobs:
 
     steps:
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install dependencies
-      run: |
-        pip install pdfplumber requests
+    - run: pip install pdfplumber requests
 
-    - name: Run update script
-      run: |
-        python scripts/update_sales.py
+    - run: python scripts/update_sales.py
 
     - name: Commit updated GeoJSON
       run: |

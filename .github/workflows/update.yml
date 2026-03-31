@@ -2,7 +2,7 @@ name: Update sales data
 
 on:
   schedule:
-    - cron: "0 5 * * *"
+    - cron: "0 13 * * *"
   workflow_dispatch:
 
 permissions:

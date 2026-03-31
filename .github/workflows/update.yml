@@ -1,0 +1,38 @@
+name: Update sales data
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   
+  workflow_dispatch:
+
+jobs:
+
+  update:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install pdfplumber requests
+
+    - name: Run update script
+      run: |
+        python scripts/update_sales.py
+
+    - name: Commit updated GeoJSON
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        git add data/haeuser_final.geojson
+        git commit -m "update sales data" || echo "no changes"
+        git push

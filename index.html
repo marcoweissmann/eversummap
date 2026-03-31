@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Waldferiendorf Eversum – Häuser</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+html, body {
+  margin:0;
+  padding:0;
+  height:100%;
+}
+
+#map{
+  height:100vh;
+  width:100%;
+}
+
+.panel{
+  background:white;
+  padding:12px;
+  border-radius:6px;
+  box-shadow:0 0 8px rgba(0,0,0,0.3);
+  font-family:sans-serif;
+  font-size:13px;
+  max-width:260px;
+}
+
+.legend-item{
+  display:flex;
+  align-items:center;
+  margin-bottom:5px;
+}
+
+.legend-color{
+  width:14px;
+  height:14px;
+  margin-right:6px;
+  border:1px solid #444;
+}
+
+.sales-table{
+  border-collapse:collapse;
+  width:100%;
+  margin-top:6px;
+}
+
+.sales-table th{
+  text-align:left;
+  border-bottom:1px solid #ddd;
+  padding:4px;
+}
+
+.sales-table td{
+  padding:4px;
+}
+
+.sales-table tr:hover{
+  background:#f3f3f3;
+}
+
+.sales-table button{
+  font-size:12px;
+  padding:2px 6px;
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+const map=L.map('map').setView([51.702721,7.332047],15);
+
+L.tileLayer(
+ 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+ { attribution:'© OpenStreetMap contributors'}
+).addTo(map);
+
+map.attributionControl.addAttribution(
+'Verkaufsdaten: <a href="https://www.waldferiendorf-eversum.de" target="_blank">waldferiendorf-eversum.de</a>'
+);
+
+let geoLayer;
+let salesFeatures=[];
+
+
+// Preisformatierung
+function formatPrice(value){
+ if(!value) return "-";
+ return new Intl.NumberFormat('de-DE').format(value)+" €";
+}
+
+
+
+// GeoJSON laden
+fetch('data/haeuser_final.geojson')
+.then(r=>r.json())
+.then(data=>{
+
+geoLayer=L.geoJSON(data,{
+
+style:function(feature){
+
+ const status=feature.properties?.status;
+
+ const fill=status==="zu_verkaufen"
+   ? "#1f78b4"      // blau
+   : "#cfcfcf";     // grau
+
+ const opacity=status==="zu_verkaufen"
+   ? 0.85
+   : 0.4;
+
+ return{
+   color:"#444",
+   weight:1,
+   fillColor:fill,
+   fillOpacity:opacity
+ };
+
+},
+
+onEachFeature:function(feature,layer){
+
+ const p=feature.properties;
+
+ const popup=`
+   <b>${p["addr:street"] ?? ""} ${p["addr:housenumber"] ?? ""}</b><br>
+   Status: ${p.status ?? "-"}<br>
+   Preis: ${formatPrice(p.preis)}<br>
+   Pacht: ${p.pacht ?? "-"} € / Jahr<br>
+   Fläche: ${p.flaeche ?? "-"} m²
+ `;
+
+ layer.bindPopup(popup);
+
+
+ // Hover Highlight
+ layer.on("mouseover",function(){
+   layer.setStyle({
+     weight:3,
+     color:"#000"
+   });
+ });
+
+ layer.on("mouseout",function(){
+   geoLayer.resetStyle(layer);
+ });
+
+
+ // Verkaufsobjekte sammeln
+ if(p.status==="zu_verkaufen"){
+   salesFeatures.push({feature,layer});
+ }
+
+}
+
+}).addTo(map);
+
+
+map.fitBounds(geoLayer.getBounds());
+
+createSalesPanel();
+
+});
+
+
+
+
+// Panel (Legende + Verkaufstabelle)
+function createSalesPanel(){
+
+salesFeatures.sort((a,b)=>{
+ return (a.feature.properties.preis||0)-(b.feature.properties.preis||0);
+});
+
+
+const control=L.control({position:"bottomleft"});
+
+control.onAdd=function(){
+
+const div=L.DomUtil.create("div","panel");
+
+let html=`
+
+<b>Status</b>
+
+<div class="legend-item">
+<div class="legend-color" style="background:#1f78b4"></div>
+zu verkaufen
+</div>
+
+<div class="legend-item">
+<div class="legend-color" style="background:#cfcfcf"></div>
+nicht zu verkaufen
+</div>
+
+<hr>
+
+<b>Verfügbare Häuser</b>
+
+<table class="sales-table">
+
+<tr>
+<th>Adresse</th>
+<th>Preis</th>
+<th></th>
+</tr>
+`;
+
+
+salesFeatures.forEach((obj,i)=>{
+
+const p=obj.feature.properties;
+
+html+=`
+<tr>
+<td>${p["addr:street"]} ${p["addr:housenumber"]}</td>
+<td>${formatPrice(p.preis)}</td>
+<td><button onclick="zoomToHouse(${i})">Karte</button></td>
+</tr>
+`;
+
+});
+
+
+html+=`</table>`;
+
+div.innerHTML=html;
+
+L.DomEvent.disableClickPropagation(div);
+
+return div;
+
+};
+
+control.addTo(map);
+
+}
+
+
+
+// Zoom auf Gebäude
+function zoomToHouse(index){
+
+const obj=salesFeatures[index];
+
+map.fitBounds(obj.layer.getBounds(),{
+ maxZoom:18
+});
+
+obj.layer.openPopup();
+
+}
+
+</script>
+
+</body>
+</html>

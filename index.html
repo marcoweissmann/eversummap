@@ -253,15 +253,27 @@ control.addTo(map);
 
 
 // Zoom auf Gebäude
-function zoomToHouse(index){
+function zoomToHouse(index) {
+    const obj = salesFeatures[index];
+    
+    // Mittelpunkt des Objekts berechnen
+    let center;
+    if (obj.layer.getLatLng) {
+        // Falls es ein Marker (Pin) ist
+        center = obj.layer.getLatLng();
+    } else if (obj.layer.getBounds) {
+        // Falls es ein Polygon, Rechteck etc. ist
+        center = obj.layer.getBounds().getCenter();
+    }
 
-const obj=salesFeatures[index];
+    // Karte fliegt zur Mitte des Objekts und zoomt auf Level 18
+    map.flyTo(center);
 
-map.fitBounds(obj.layer.getBounds(),{
- maxZoom:18
-});
-
-obj.layer.openPopup();
+    // Popup leicht verzögert öffnen, damit es nicht während der Animation 
+    // an der alten Position aufploppt (optional, aber sieht besser aus)
+    setTimeout(() => {
+        obj.layer.openPopup();
+    }, 300); // 400ms passen meist gut zur flyTo-Standarddauer
 
 }
 

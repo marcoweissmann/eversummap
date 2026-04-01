@@ -214,6 +214,7 @@ nicht zu verkaufen
 <tr>
 <th>Adresse</th>
 <th>Preis</th>
+<th>Fläche</th>
 <th></th>
 </tr>
 `;
@@ -227,6 +228,7 @@ html+=`
 <tr>
 <td>${p["addr:street"]} ${p["addr:housenumber"]}</td>
 <td>${formatPrice(p.preis)}</td>
+<td>${p.flaeche ?? "-"} m²</td>
 <td><button onclick="zoomToHouse(${i})">Karte</button></td>
 </tr>
 `;

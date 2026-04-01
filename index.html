@@ -97,7 +97,7 @@ let salesFeatures=[];
 // Preisformatierung
 function formatPrice(value){
  if(!value) return "-";
- return new Intl.NumberFormat('de-DE').format(value)+" €";
+ return new Intl.NumberFormat('de-DE').format(value)+ "\u00A0" + "€";
 }
 
 

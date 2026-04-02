@@ -7351,10 +7351,10 @@
         "addr:postcode": "59399",
         "addr:street": "Euleneck",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 35000,
+        "pacht": 1438,
+        "flaeche": 45
       },
       "geometry": {
         "type": "Polygon",
@@ -23887,10 +23887,10 @@
         "addr:postcode": "59399",
         "addr:street": "Fasanenhügel",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 90000,
+        "pacht": 1517,
+        "flaeche": 45
       },
       "geometry": {
         "type": "Polygon",
@@ -26948,7 +26948,7 @@
         "addr:street": "Dachsgrund",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 65000,
+        "preis": 60000,
         "pacht": 1841,
         "flaeche": 40
       },

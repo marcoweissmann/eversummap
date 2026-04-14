@@ -1535,10 +1535,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Schneise",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 89000,
+        "pacht": 1656,
+        "flaeche": 50
       },
       "geometry": {
         "type": "Polygon",
@@ -3175,10 +3175,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Tanne",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 65000,
-        "pacht": 1596,
-        "flaeche": 40
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -23887,10 +23887,10 @@
         "addr:postcode": "59399",
         "addr:street": "Fasanenhügel",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 90000,
-        "pacht": 1517,
-        "flaeche": 45
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",

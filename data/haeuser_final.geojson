@@ -14143,10 +14143,10 @@
         "addr:postcode": "59399",
         "addr:street": "Kuckuckshöhe",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 65000,
+        "pacht": 1693,
+        "flaeche": 45
       },
       "geometry": {
         "type": "Polygon",

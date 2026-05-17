@@ -12,6 +12,12 @@ BASE_URL = "https://www.waldferiendorf-eversum.de/upload/"
 
 PDF_FILE = "/tmp/liste.pdf"
 
+# Wie viele Tage rückwirkend gesucht wird
+SEARCH_DAYS = 90
+
+# Mögliche Suffixe (leer = kein Suffix, dann -2, -3, -4 ...)
+SUFFIXES = ["", "-2", "-3", "-4", "-5"]
+
 
 def normalize(text):
     if text is None:
@@ -26,24 +32,23 @@ def normalize(text):
 def find_latest_pdf():
     today = datetime.today()
 
-    for i in range(14):
+    for i in range(SEARCH_DAYS):
         d = today - timedelta(days=i)
         base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
 
-        # Erst ohne Suffix, dann mit -2, -3 usw.
-        suffixes = ["", "-2", "-3"]
-
-        for suffix in suffixes:
+        for suffix in SUFFIXES:
             filename = f"{base_name}{suffix}.pdf"
             url = BASE_URL + filename
 
-            r = requests.head(url)
+            try:
+                r = requests.head(url, timeout=10)
+                if r.status_code == 200:
+                    print("PDF gefunden:", url)
+                    return url
+            except requests.RequestException as e:
+                print(f"Fehler beim Prüfen von {url}: {e}")
 
-            if r.status_code == 200:
-                print("PDF gefunden:", url)
-                return url
-
-    raise Exception("Keine aktuelle Verkaufs-PDF gefunden")
+    raise Exception(f"Keine Verkaufs-PDF in den letzten {SEARCH_DAYS} Tagen gefunden")
 
 
 # ----------------------------------------
@@ -51,7 +56,8 @@ def find_latest_pdf():
 # ----------------------------------------
 
 def download_pdf(url):
-    r = requests.get(url)
+    r = requests.get(url, timeout=30)
+    r.raise_for_status()
 
     with open(PDF_FILE, "wb") as f:
         f.write(r.content)

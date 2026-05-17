@@ -24,21 +24,24 @@ def normalize(text):
 # ----------------------------------------
 
 def find_latest_pdf():
-
     today = datetime.today()
 
     for i in range(14):
-
         d = today - timedelta(days=i)
+        base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
+        
+        # Versuche erst mit Suffix -2, dann ohne
+        suffixes = ["-2", ""]
+        
+        for suffix in suffixes:
+            filename = f"{base_name}{suffix}.pdf"
+            url = BASE_URL + filename
 
-        filename = f"eversum-liste-{d.strftime('%d-%m-%Y')}.pdf"
-        url = BASE_URL + filename
+            r = requests.head(url)
 
-        r = requests.head(url)
-
-        if r.status_code == 200:
-            print("PDF gefunden:", url)
-            return url
+            if r.status_code == 200:
+                print("PDF gefunden:", url)
+                return url
 
     raise Exception("Keine aktuelle Verkaufs-PDF gefunden")
 

@@ -29,10 +29,10 @@ def find_latest_pdf():
     for i in range(14):
         d = today - timedelta(days=i)
         base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
-        
-        # Versuche erst mit Suffix -2, dann ohne
-        suffixes = ["-1", "-2", "-3"]
-        
+
+        # Erst ohne Suffix, dann mit -2, -3 usw.
+        suffixes = ["", "-2", "-3"]
+
         for suffix in suffixes:
             filename = f"{base_name}{suffix}.pdf"
             url = BASE_URL + filename
@@ -51,7 +51,6 @@ def find_latest_pdf():
 # ----------------------------------------
 
 def download_pdf(url):
-
     r = requests.get(url)
 
     with open(PDF_FILE, "wb") as f:
@@ -65,11 +64,9 @@ def download_pdf(url):
 # ----------------------------------------
 
 def parse_sales():
-
     text = ""
 
     with pdfplumber.open(PDF_FILE) as pdf:
-
         for page in pdf.pages:
             t = page.extract_text()
 
@@ -83,7 +80,6 @@ def parse_sales():
     sales = []
 
     for match in pattern.finditer(text):
-
         street = match.group(1).strip()
         house = match.group(2)
 
@@ -109,26 +105,21 @@ def parse_sales():
 # ----------------------------------------
 
 def merge_sales(sales):
-
     with open(HAUS_FILE, encoding="utf-8") as f:
         geo = json.load(f)
 
     sales_index = {}
 
     for s in sales:
-
         key = (
             normalize(s["addr:street"]),
             normalize(s["addr:housenumber"])
         )
-
         sales_index[key] = s
-
 
     matched = 0
 
     for feature in geo["features"]:
-
         p = feature["properties"]
 
         street = normalize(p.get("addr:street"))
@@ -137,7 +128,6 @@ def merge_sales(sales):
         key = (street, house)
 
         if key in sales_index:
-
             s = sales_index[key]
 
             p["status"] = "zu_verkaufen"
@@ -146,137 +136,7 @@ def merge_sales(sales):
             p["flaeche"] = s["flaeche"]
 
             matched += 1
-
         else:
-
-            p.setdefault("status", "nicht_verkauf")
-
-    print("Gematchte Häuser:", matched)
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(geo, f, indent=2, ensure_ascii=False)
-
-    print("GeoJSON geschrieben:", OUTPUT_FILE)
-
-
-# ----------------------------------------
-# MAIN
-# ----------------------------------------
-
-url = find_latest_pdf()
-
-download_pdf(url)
-
-sales = parse_sales()
-
-merge_sales(sales)        if r.status_code == 200:
-            print("PDF gefunden:", url)
-            return url
-
-    raise Exception("Keine aktuelle Verkaufs-PDF gefunden")
-
-
-# ----------------------------------------
-# PDF herunterladen
-# ----------------------------------------
-
-def download_pdf(url):
-
-    r = requests.get(url)
-
-    with open("liste.pdf", "wb") as f:
-        f.write(r.content)
-
-
-# ----------------------------------------
-# Verkaufsdaten aus PDF lesen
-# ----------------------------------------
-
-def parse_sales():
-
-    text = ""
-
-    with pdfplumber.open("liste.pdf") as pdf:
-
-        for page in pdf.pages:
-            t = page.extract_text()
-
-            if t:
-                text += t + "\n"
-
-    pattern = re.compile(
-        r'([A-Za-zÄÖÜäöüß\s]+?)\s+(\d+)\s+(\d+)\s+€\s*([\d\.]+)\s*VB?\s*€\s*([\d\.]+)'
-    )
-
-    sales = []
-
-    for match in pattern.finditer(text):
-
-        street = match.group(1).strip()
-        house = match.group(2)
-
-        flaeche = int(match.group(3))
-        preis = int(match.group(4).replace(".", ""))
-        pacht = int(match.group(5).replace(".", ""))
-
-        sales.append({
-            "addr:street": street,
-            "addr:housenumber": house,
-            "flaeche": flaeche,
-            "preis": preis,
-            "pacht": pacht
-        })
-
-    print("Verkaufsobjekte erkannt:", len(sales))
-
-    return sales
-
-
-# ----------------------------------------
-# Merge mit Gebäude-GeoJSON
-# ----------------------------------------
-
-def merge_sales(sales):
-
-    with open(HAUS_FILE, encoding="utf-8") as f:
-        geo = json.load(f)
-
-    sales_index = {}
-
-    for s in sales:
-
-        key = (
-            normalize(s["addr:street"]),
-            normalize(s["addr:housenumber"])
-        )
-
-        sales_index[key] = s
-
-
-    matched = 0
-
-    for feature in geo["features"]:
-
-        p = feature["properties"]
-
-        street = normalize(p.get("addr:street"))
-        house = normalize(p.get("addr:housenumber"))
-
-        key = (street, house)
-
-        if key in sales_index:
-
-            s = sales_index[key]
-
-            p["status"] = "zu_verkaufen"
-            p["preis"] = s["preis"]
-            p["pacht"] = s["pacht"]
-            p["flaeche"] = s["flaeche"]
-
-            matched += 1
-
-        else:
-
             p.setdefault("status", "nicht_verkauf")
 
     print("Gematchte Häuser:", matched)

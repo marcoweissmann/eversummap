@@ -31,7 +31,7 @@ def find_latest_pdf():
         base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
         
         # Versuche erst mit Suffix -2, dann ohne
-        suffixes = ["-2", ""]
+        suffixes = ["-1", "-2", "-3"]
         
         for suffix in suffixes:
             filename = f"{base_name}{suffix}.pdf"

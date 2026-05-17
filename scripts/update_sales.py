@@ -10,6 +10,14 @@ OUTPUT_FILE = "data/haeuser_final.geojson"
 
 BASE_URL = "https://www.waldferiendorf-eversum.de/upload/"
 
+PDF_FILE = "/tmp/liste.pdf"
+
+# Wie viele Tage rückwirkend gesucht wird
+SEARCH_DAYS = 90
+
+# Mögliche Suffixe (leer = kein Suffix, dann -2, -3, -4 ...)
+SUFFIXES = ["", "-2", "-3", "-4", "-5"]
+
 
 def normalize(text):
     if text is None:
@@ -22,23 +30,25 @@ def normalize(text):
 # ----------------------------------------
 
 def find_latest_pdf():
-
     today = datetime.today()
 
-    for i in range(14):
-
+    for i in range(SEARCH_DAYS):
         d = today - timedelta(days=i)
+        base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
 
-        filename = f"eversum-liste-{d.strftime('%d-%m-%Y')}.pdf"
-        url = BASE_URL + filename
+        for suffix in SUFFIXES:
+            filename = f"{base_name}{suffix}.pdf"
+            url = BASE_URL + filename
 
-        r = requests.head(url)
+            try:
+                r = requests.head(url, timeout=10)
+                if r.status_code == 200:
+                    print("PDF gefunden:", url)
+                    return url
+            except requests.RequestException as e:
+                print(f"Fehler beim Prüfen von {url}: {e}")
 
-        if r.status_code == 200:
-            print("PDF gefunden:", url)
-            return url
-
-    raise Exception("Keine aktuelle Verkaufs-PDF gefunden")
+    raise Exception(f"Keine Verkaufs-PDF in den letzten {SEARCH_DAYS} Tagen gefunden")
 
 
 # ----------------------------------------
@@ -46,11 +56,13 @@ def find_latest_pdf():
 # ----------------------------------------
 
 def download_pdf(url):
+    r = requests.get(url, timeout=30)
+    r.raise_for_status()
 
-    r = requests.get(url)
-
-    with open("liste.pdf", "wb") as f:
+    with open(PDF_FILE, "wb") as f:
         f.write(r.content)
+
+    print("PDF gespeichert:", PDF_FILE)
 
 
 # ----------------------------------------
@@ -58,11 +70,9 @@ def download_pdf(url):
 # ----------------------------------------
 
 def parse_sales():
-
     text = ""
 
-    with pdfplumber.open("liste.pdf") as pdf:
-
+    with pdfplumber.open(PDF_FILE) as pdf:
         for page in pdf.pages:
             t = page.extract_text()
 
@@ -76,7 +86,6 @@ def parse_sales():
     sales = []
 
     for match in pattern.finditer(text):
-
         street = match.group(1).strip()
         house = match.group(2)
 
@@ -102,26 +111,21 @@ def parse_sales():
 # ----------------------------------------
 
 def merge_sales(sales):
-
     with open(HAUS_FILE, encoding="utf-8") as f:
         geo = json.load(f)
 
     sales_index = {}
 
     for s in sales:
-
         key = (
             normalize(s["addr:street"]),
             normalize(s["addr:housenumber"])
         )
-
         sales_index[key] = s
-
 
     matched = 0
 
     for feature in geo["features"]:
-
         p = feature["properties"]
 
         street = normalize(p.get("addr:street"))
@@ -130,7 +134,6 @@ def merge_sales(sales):
         key = (street, house)
 
         if key in sales_index:
-
             s = sales_index[key]
 
             p["status"] = "zu_verkaufen"
@@ -139,9 +142,7 @@ def merge_sales(sales):
             p["flaeche"] = s["flaeche"]
 
             matched += 1
-
         else:
-
             p.setdefault("status", "nicht_verkauf")
 
     print("Gematchte Häuser:", matched)

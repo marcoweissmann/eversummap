@@ -7351,10 +7351,10 @@
         "addr:postcode": "59399",
         "addr:street": "Euleneck",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 35000,
-        "pacht": 1438,
-        "flaeche": 45
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -11055,10 +11055,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Kiefer",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 55000,
-        "pacht": 1841,
-        "flaeche": 45
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -11336,7 +11336,7 @@
         "addr:street": "Fuchsloch",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 46000,
+        "preis": 35000,
         "pacht": 1558,
         "flaeche": 40
       },

@@ -1883,10 +1883,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Birke",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 45000,
+        "pacht": 1525,
+        "flaeche": 28
       },
       "geometry": {
         "type": "Polygon",
@@ -22995,10 +22995,10 @@
         "addr:postcode": "59399",
         "addr:street": "Fasanenhügel",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 50000,
-        "pacht": 1904,
-        "flaeche": 40
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -26599,10 +26599,10 @@
         "addr:postcode": "59399",
         "addr:street": "Habichthorst",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 650000,
-        "pacht": 1785,
-        "flaeche": 40
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",

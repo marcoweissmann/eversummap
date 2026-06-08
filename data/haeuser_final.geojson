@@ -26599,10 +26599,10 @@
         "addr:postcode": "59399",
         "addr:street": "Habichthorst",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 65000,
+        "pacht": 1785,
+        "flaeche": 40
       },
       "geometry": {
         "type": "Polygon",

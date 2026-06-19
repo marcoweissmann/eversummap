@@ -30,6 +30,6 @@ jobs:
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "actions@github.com"
-        git add data/haeuser_final.geojson
+        git add data/haeuser_final.geojson data/preis_historie.json
         git commit -m "update sales data" || echo "no changes"
         git push

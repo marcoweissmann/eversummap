@@ -70,6 +70,23 @@ html, body {
   cursor:pointer;
 }
 
+.price-history{
+  margin-top:6px;
+}
+
+.price-history svg{
+  display:block;
+}
+
+.price-delta{
+  font-size:12px;
+  margin-top:2px;
+}
+
+.price-delta.down{ color:#1a7f37; }   /* gefallen = gut für Käufer */
+.price-delta.up{ color:#b42318; }      /* gestiegen */
+.price-delta.flat{ color:#666; }
+
 </style>
 </head>
 
@@ -94,6 +111,55 @@ map.attributionControl.addAttribution(
 
 let geoLayer;
 let salesFeatures=[];
+let priceHistory={};
+
+
+// Datum kurz: "06/2026"
+function formatMonth(iso){
+ const d=new Date(iso);
+ return String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+}
+
+
+// SVG-Sparkline aus den Historien-Punkten eines Hauses
+function buildSparkline(punkte){
+ const pts=(punkte||[]).filter(p=>p.preis!=null);
+ if(pts.length<2) return "";
+
+ const W=220, H=46, pad=4;
+ const values=pts.map(p=>p.preis);
+ const min=Math.min(...values);
+ const max=Math.max(...values);
+ const span=(max-min)||1;
+
+ const x=i=> pad + (W-2*pad) * (i/(pts.length-1));
+ const y=v=> pad + (H-2*pad) * (1-(v-min)/span);
+
+ const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
+ const last=pts[pts.length-1];
+
+ return `
+ <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+   <path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>
+   <circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(last.preis).toFixed(1)}" r="3" fill="#1f78b4"/>
+ </svg>`;
+}
+
+
+// Text zur Preisänderung seit dem ersten erfassten Punkt
+function priceDeltaHtml(punkte){
+ const pts=(punkte||[]).filter(p=>p.preis!=null);
+ if(pts.length<2) return "";
+
+ const first=pts[0], last=pts[pts.length-1];
+ const diff=last.preis-first.preis;
+
+ const cls=diff<0?"down":diff>0?"up":"flat";
+ const sign=diff>0?"+":diff<0?"−":"±";
+ const arrow=diff<0?"▼":diff>0?"▲":"→";
+
+ return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
+}
 
 
 // Preisformatierung
@@ -104,10 +170,15 @@ function formatPrice(value){
 
 
 
-// GeoJSON laden
-fetch('data/haeuser_final.geojson')
-.then(r=>r.json())
-.then(data=>{
+// GeoJSON + Preis-Historie laden
+// Historie ist optional: fällt sie weg, funktioniert die Karte trotzdem.
+Promise.all([
+ fetch('data/haeuser_final.geojson').then(r=>r.json()),
+ fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+])
+.then(([data,history])=>{
+
+priceHistory=history||{};
 
 geoLayer=L.geoJSON(data,{
 
@@ -136,12 +207,20 @@ onEachFeature:function(feature,layer){
 
  const p=feature.properties;
 
+ const hist=priceHistory[p.id] || priceHistory[p["@id"]];
+ const punkte=hist?.punkte;
+
+ const histHtml=(punkte && punkte.length>1)
+   ? `<div class="price-history">${buildSparkline(punkte)}${priceDeltaHtml(punkte)}</div>`
+   : "";
+
  const popup=`
    <b>${p["addr:street"] ?? ""} ${p["addr:housenumber"] ?? ""}</b><br>
    Status: ${p.status ?? "-"}<br>
    Preis: ${formatPrice(p.preis)}<br>
    Pacht: ${p.pacht ?? "-"} € / Jahr<br>
    Fläche: ${p.flaeche ?? "-"} m²
+   ${histHtml}
  `;
 
  layer.bindPopup(popup);
@@ -239,6 +318,8 @@ html+=`
 
 
 html+=`</table>`;
+
+html+=`<hr><a href="historie.html">Preis-Historie ansehen →</a>`;
 
 div.innerHTML=html;
 

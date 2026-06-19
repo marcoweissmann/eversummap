@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import requests
 import pdfplumber
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 
 HAUS_FILE = "data/haeuser.geojson"
 OUTPUT_FILE = "data/haeuser_final.geojson"
+HISTORY_FILE = "data/preis_historie.json"
 
 BASE_URL = "https://www.waldferiendorf-eversum.de/upload/"
 
@@ -152,6 +154,73 @@ def merge_sales(sales):
 
     print("GeoJSON geschrieben:", OUTPUT_FILE)
 
+    return geo
+
+
+# ----------------------------------------
+# Preis-Historie fortschreiben
+# ----------------------------------------
+# Pro Haus eine Zeitreihe. Es wird nur dann ein neuer Punkt angehängt,
+# wenn sich Preis oder Pacht gegenüber dem letzten Eintrag geändert hat.
+# Schlüssel ist die stabile OSM-ID (z.B. "way/366828292").
+
+def update_history(geo):
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, encoding="utf-8") as f:
+            history = json.load(f)
+    else:
+        history = {}
+
+    today = datetime.today().strftime("%Y-%m-%d")
+    changed = 0
+    aktuelle_ids = set()
+
+    for feature in geo["features"]:
+        p = feature["properties"]
+
+        if p.get("status") != "zu_verkaufen":
+            continue
+
+        haus_id = p.get("id") or p.get("@id")
+        if not haus_id:
+            continue
+
+        aktuelle_ids.add(haus_id)
+
+        preis = p.get("preis")
+        pacht = p.get("pacht")
+        flaeche = p.get("flaeche")
+
+        entry = history.setdefault(haus_id, {"addr": "", "punkte": []})
+        entry["addr"] = f'{p.get("addr:street", "")} {p.get("addr:housenumber", "")}'.strip()
+        entry["flaeche"] = flaeche
+        entry["aktiv"] = True
+        # Falls das Haus zuvor als verkauft galt und nun wieder gelistet ist:
+        entry.pop("verkauft_am", None)
+
+        punkte = entry["punkte"]
+        last = punkte[-1] if punkte else None
+
+        if last is None or last.get("preis") != preis or last.get("pacht") != pacht:
+            punkte.append({"datum": today, "preis": preis, "pacht": pacht})
+            changed += 1
+
+    # Häuser, die in der Historie stehen, aber nicht mehr in der aktuellen
+    # Liste auftauchen -> vermutlich verkauft / vom Markt genommen.
+    vom_markt = 0
+    for haus_id, entry in history.items():
+        if haus_id not in aktuelle_ids and entry.get("aktiv", True):
+            entry["aktiv"] = False
+            entry["verkauft_am"] = today
+            vom_markt += 1
+
+    print("Historie aktualisiert, neue Punkte:", changed, "| vom Markt:", vom_markt)
+
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+
+    print("Historie geschrieben:", HISTORY_FILE)
+
 
 # ----------------------------------------
 # MAIN
@@ -163,4 +232,6 @@ download_pdf(url)
 
 sales = parse_sales()
 
-merge_sales(sales)
+geo = merge_sales(sales)
+
+update_history(geo)

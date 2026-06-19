@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Waldferiendorf Eversum – Preis-Historie & Analyse</title>
+
+<link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
+
+<style>
+
+body{
+  margin:0;
+  padding:24px;
+  font-family:sans-serif;
+  font-size:14px;
+  color:#222;
+  background:#fafafa;
+}
+
+h1{ font-size:20px; margin:0 0 4px; }
+
+.sub{ color:#666; margin:0 0 20px; }
+.sub a{ color:#1f78b4; }
+
+.section{
+  font-size:16px;
+  font-weight:600;
+  margin:28px 0 12px;
+}
+
+/* KPI-Kacheln */
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+  gap:12px;
+  margin-bottom:8px;
+}
+.kpi{
+  background:white;
+  border:1px solid #e3e3e3;
+  border-radius:8px;
+  padding:12px 14px;
+}
+.kpi .label{ font-size:12px; color:#666; }
+.kpi .value{ font-size:20px; font-weight:500; margin-top:2px; }
+.kpi .sub2{ font-size:12px; color:#999; margin-top:2px; }
+.note{ color:#999; font-size:12px; font-style:italic; margin:6px 0 0; }
+
+/* Charts */
+.charts{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+  gap:16px;
+}
+.chart-card{
+  background:white;
+  border:1px solid #e3e3e3;
+  border-radius:8px;
+  padding:14px 16px;
+}
+.chart-card h3{ font-size:14px; margin:0 0 6px; }
+
+/* Karten */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+  gap:16px;
+}
+.card{
+  background:white;
+  border:1px solid #e3e3e3;
+  border-radius:8px;
+  padding:14px 16px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+.card h2{ font-size:16px; margin:0 0 6px; }
+.card.sold{ opacity:0.85; }
+
+.line{ font-size:13px; margin-bottom:4px; }
+.line b{ font-size:15px; }
+
+.badge{
+  display:inline-block;
+  font-size:12px;
+  padding:2px 8px;
+  border-radius:10px;
+  margin-left:4px;
+}
+.badge.cheap{ background:#e6f4ea; color:#1a7f37; }
+.badge.exp{ background:#fde8e8; color:#b42318; }
+.badge.mid{ background:#eee; color:#555; }
+
+.price-history svg{ display:block; margin:6px 0; }
+
+.price-delta{ font-size:13px; margin:2px 0 8px; }
+.price-delta.down{ color:#1a7f37; }
+.price-delta.up{ color:#b42318; }
+.price-delta.flat{ color:#666; }
+
+.hint{ color:#999; font-style:italic; font-size:12px; margin:6px 0 8px; }
+
+table{ border-collapse:collapse; width:100%; margin-top:6px; }
+th{ text-align:left; border-bottom:1px solid #ddd; padding:4px 6px; font-size:12px; color:#555; }
+td{ padding:4px 6px; border-bottom:1px solid #f0f0f0; }
+tr:last-child td{ border-bottom:none; }
+
+.empty{ color:#666; padding:20px; }
+
+</style>
+</head>
+
+<body>
+
+<h1>Preis-Historie & Analyse</h1>
+<p class="sub">Waldferiendorf Eversum · <a href="index.html">← zurück zur Karte</a></p>
+
+<div id="content"></div>
+
+<script>
+
+// ---------- Hilfsfunktionen ----------
+
+function formatPrice(value){
+ if(value==null) return "-";
+ return new Intl.NumberFormat('de-DE').format(Math.round(value))+ " €";
+}
+
+function formatMonth(iso){
+ const d=new Date(iso);
+ return String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+}
+
+function median(arr){
+ if(!arr.length) return null;
+ const a=[...arr].sort((x,y)=>x-y);
+ const m=Math.floor(a.length/2);
+ return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+function mean(arr){
+ if(!arr.length) return null;
+ return arr.reduce((s,x)=>s+x,0)/arr.length;
+}
+
+// Sparkline (Verlauf eines Hauses)
+function buildSparkline(punkte){
+ const pts=(punkte||[]).filter(p=>p.preis!=null);
+ if(pts.length<2) return "";
+ const W=290,H=60,pad=5;
+ const v=pts.map(p=>p.preis), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
+ const x=i=>pad+(W-2*pad)*(i/(pts.length-1));
+ const y=val=>pad+(H-2*pad)*(1-(val-min)/span);
+ const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
+ const dots=pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.preis).toFixed(1)}" r="3" fill="#1f78b4"/>`).join("");
+ return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>${dots}</svg>`;
+}
+
+function priceDeltaHtml(punkte){
+ const pts=(punkte||[]).filter(p=>p.preis!=null);
+ if(pts.length<2) return "";
+ const first=pts[0], last=pts[pts.length-1], diff=last.preis-first.preis;
+ const cls=diff<0?"down":diff>0?"up":"flat";
+ const sign=diff>0?"+":diff<0?"−":"±";
+ const arrow=diff<0?"▼":diff>0?"▲":"→";
+ return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
+}
+
+// Liniendiagramm mit Min/Max- und Datums-Labels (Markt-Index)
+function buildLineChart(series, fmt){
+ if(series.length<2){
+   return '<p class="hint">Mindestens zwei Stichtage nötig – füllt sich, sobald sich Daten über die Zeit ansammeln.</p>';
+ }
+ const W=300,H=120,padL=8,padR=8,padT=12,padB=22;
+ const v=series.map(s=>s.wert), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
+ const x=i=>padL+(W-padL-padR)*(i/(series.length-1));
+ const y=val=>padT+(H-padT-padB)*(1-(val-min)/span);
+ const line=series.map((s,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ");
+ const dots=series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s.wert).toFixed(1)}" r="2.5" fill="#1f78b4"/>`).join("");
+ return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+   <path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>${dots}
+   <text x="${padL}" y="${(y(max)-3).toFixed(1)}" font-size="10" fill="#999">${fmt(max)}</text>
+   <text x="${padL}" y="${(y(min)+10).toFixed(1)}" font-size="10" fill="#999">${fmt(min)}</text>
+   <text x="${padL}" y="${H-6}" font-size="10" fill="#999">${formatMonth(series[0].datum)}</text>
+   <text x="${W-padR}" y="${H-6}" font-size="10" fill="#999" text-anchor="end">${formatMonth(series[series.length-1].datum)}</text>
+ </svg>`;
+}
+
+function badge(qm, medianQm){
+ if(qm==null || medianQm==null) return "";
+ const diff=(qm-medianQm)/medianQm;
+ const pct=Math.round(diff*100);
+ if(pct<=-5) return `<span class="badge cheap">${pct}% ggü. Median</span>`;
+ if(pct>=5)  return `<span class="badge exp">+${pct}% ggü. Median</span>`;
+ return `<span class="badge mid">≈ Median</span>`;
+}
+
+// Markt-Index: Zeitreihe aus der Historie rekonstruieren.
+// Für jeden Stichtag den Preis jedes Hauses fortschreiben (letzter Punkt <= Datum),
+// Häuser ohne ersten Punkt oder bereits vom Markt ausnehmen.
+function reconstructMarket(history, flaecheById){
+ const dates=new Set();
+ Object.values(history).forEach(h=>(h.punkte||[]).forEach(p=>dates.add(p.datum)));
+ const sorted=[...dates].sort();
+
+ const priceSeries=[], qmSeries=[], countSeries=[];
+
+ sorted.forEach(D=>{
+   const preise=[], qm=[];
+   Object.entries(history).forEach(([id,h])=>{
+     const pts=(h.punkte||[]).filter(p=>p.datum<=D);
+     if(!pts.length) return;
+     if(h.verkauft_am && D>=h.verkauft_am) return;
+     const preis=pts[pts.length-1].preis;
+     if(preis==null) return;
+     preise.push(preis);
+     const fl=h.flaeche || flaecheById[id];
+     if(fl) qm.push(preis/fl);
+   });
+   if(preise.length){
+     priceSeries.push({datum:D, wert:median(preise)});
+     countSeries.push({datum:D, wert:preise.length});
+   }
+   if(qm.length) qmSeries.push({datum:D, wert:median(qm)});
+ });
+
+ return {priceSeries, qmSeries, countSeries};
+}
+
+function daysBetween(a,b){
+ return Math.round((new Date(b)-new Date(a))/86400000);
+}
+
+
+// ---------- Daten laden & rendern ----------
+
+Promise.all([
+ fetch('data/haeuser_final.geojson').then(r=>r.json()),
+ fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+])
+.then(([geo, history])=>{
+
+ history=history||{};
+ const root=document.getElementById('content');
+
+ // id -> flaeche (Fläche ist konstant; aus dem GeoJSON)
+ const flaecheById={};
+ geo.features.forEach(f=>{
+   const p=f.properties, id=p.id||p["@id"];
+   if(id) flaecheById[id]=p.flaeche;
+ });
+
+ // Aktuelle Angebote
+ const aktiv=geo.features
+   .map(f=>f.properties)
+   .filter(p=>p.status==="zu_verkaufen" && p.preis)
+   .map(p=>{
+     const id=p.id||p["@id"];
+     const qm=p.flaeche ? p.preis/p.flaeche : null;
+     return {p, id, qm, punkte:(history[id]?.punkte)||[]};
+   });
+
+ let html="";
+
+ // --- KPI-Kacheln ---
+ if(aktiv.length){
+   const preise=aktiv.map(a=>a.p.preis);
+   const flaechen=aktiv.map(a=>a.p.flaeche).filter(Boolean);
+   const pachten=aktiv.map(a=>a.p.pacht).filter(Boolean);
+   const qms=aktiv.map(a=>a.qm).filter(x=>x!=null);
+   const medianQm=median(qms);
+
+   const kpi=(label,value,sub)=>`<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${sub?`<div class="sub2">${sub}</div>`:""}</div>`;
+
+   html+=`<div class="section">Marktüberblick (aktuelle Angebote)</div>`;
+   html+=`<div class="kpis">
+     ${kpi("Häuser zu verkaufen", aktiv.length)}
+     ${kpi("Median-Preis", formatPrice(median(preise)), "Ø "+formatPrice(mean(preise)))}
+     ${kpi("Median €/m²", formatPrice(medianQm), "Ø "+formatPrice(mean(qms)))}
+     ${kpi("Preisspanne", formatPrice(Math.min(...preise))+" – "+formatPrice(Math.max(...preise)))}
+     ${kpi("Median-Pacht/Jahr", formatPrice(median(pachten)))}
+     ${kpi("Median-Fläche", (median(flaechen)||"-")+" m²")}
+   </div>`;
+   html+=`<p class="note">Bei kleiner Anzahl Angebote ist der Median aussagekräftiger als der Mittelwert.</p>`;
+
+   // --- Markt-Index über Zeit ---
+   const {priceSeries, qmSeries, countSeries}=reconstructMarket(history, flaecheById);
+   html+=`<div class="section">Marktentwicklung über Zeit</div>`;
+   html+=`<div class="charts">
+     <div class="chart-card"><h3>Median-Preis</h3>${buildLineChart(priceSeries, formatPrice)}</div>
+     <div class="chart-card"><h3>Median €/m²</h3>${buildLineChart(qmSeries, formatPrice)}</div>
+     <div class="chart-card"><h3>Anzahl Angebote</h3>${buildLineChart(countSeries, v=>Math.round(v))}</div>
+   </div>`;
+
+   // --- Aktuelle Angebote (Karten) ---
+   html+=`<div class="section">Aktuelle Angebote</div><div class="cards">`;
+   aktiv.sort((a,b)=>(a.qm||0)-(b.qm||0)); // günstigster €/m² zuerst
+   aktiv.forEach(a=>{
+     const p=a.p;
+     const punkte=a.punkte.filter(x=>x.preis!=null);
+     const verlauf = punkte.length>1
+       ? `<div class="price-history">${buildSparkline(punkte)}</div>${priceDeltaHtml(punkte)}`
+       : `<p class="hint">Nur ein Datenpunkt – Verlauf erscheint nach der ersten Preisänderung.</p>`;
+     let rows="";
+     [...punkte].reverse().forEach(pt=>{
+       rows+=`<tr><td>${formatMonth(pt.datum)}</td><td>${formatPrice(pt.preis)}</td><td>${pt.pacht!=null?formatPrice(pt.pacht):"-"}</td></tr>`;
+     });
+     html+=`<div class="card">
+       <h2>${p["addr:street"]||""} ${p["addr:housenumber"]||""}</h2>
+       <div class="line">Preis: <b>${formatPrice(p.preis)}</b></div>
+       <div class="line">€/m²: ${formatPrice(a.qm)} ${badge(a.qm, median(aktiv.map(x=>x.qm).filter(v=>v!=null)))}</div>
+       <div class="line">Fläche: ${p.flaeche||"-"} m² · Pacht: ${formatPrice(p.pacht)}/Jahr</div>
+       ${verlauf}
+       <table><tr><th>Stand</th><th>Preis</th><th>Pacht</th></tr>${rows}</table>
+     </div>`;
+   });
+   html+=`</div>`;
+ } else {
+   html+=`<p class="empty">Aktuell keine Häuser zum Verkauf.</p>`;
+ }
+
+ // --- Vom Markt / vermutlich verkauft ---
+ const sold=Object.entries(history)
+   .filter(([id,h])=>h.aktiv===false)
+   .map(([id,h])=>({id,h}));
+
+ if(sold.length){
+   html+=`<div class="section">Vom Markt genommen / vermutlich verkauft</div><div class="cards">`;
+   sold.sort((a,b)=>(b.h.verkauft_am||"").localeCompare(a.h.verkauft_am||""));
+   sold.forEach(({h})=>{
+     const punkte=(h.punkte||[]).filter(x=>x.preis!=null);
+     const gelistetSeit=punkte.length?punkte[0].datum:null;
+     const letzterPreis=punkte.length?punkte[punkte.length-1].preis:null;
+     const dauer=(gelistetSeit && h.verkauft_am)?daysBetween(gelistetSeit, h.verkauft_am):null;
+     html+=`<div class="card sold">
+       <h2>${h.addr||"Unbekannt"}</h2>
+       <div class="line">Letzter Preis: <b>${formatPrice(letzterPreis)}</b></div>
+       <div class="line">Vom Markt seit: ${h.verkauft_am||"-"}</div>
+       <div class="line">Vermarktungsdauer: ${dauer!=null?dauer+" Tage":"-"}</div>
+     </div>`;
+   });
+   html+=`</div>`;
+ }
+
+ root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';
+})
+.catch(()=>{
+ document.getElementById('content').innerHTML='<p class="empty">Daten konnten nicht geladen werden.</p>';
+});
+
+</script>
+
+</body>
+</html>

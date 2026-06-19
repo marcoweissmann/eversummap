@@ -1,0 +1,86 @@
+{
+  "way/366828292": {
+    "addr": "Zur Birke 17",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 45000,
+        "pacht": 1525
+      }
+    ],
+    "flaeche": 28,
+    "aktiv": true
+  },
+  "way/366828312": {
+    "addr": "Euleneck 22",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 65000,
+        "pacht": 1363
+      }
+    ],
+    "flaeche": 40,
+    "aktiv": true
+  },
+  "way/366828541": {
+    "addr": "Euleneck 47",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 60000,
+        "pacht": 1432
+      }
+    ],
+    "flaeche": 33,
+    "aktiv": true
+  },
+  "way/367286623": {
+    "addr": "Fuchsloch 10",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 35000,
+        "pacht": 1558
+      }
+    ],
+    "flaeche": 40,
+    "aktiv": true
+  },
+  "way/367295417": {
+    "addr": "Kuckuckshöhe 123",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 45000,
+        "pacht": 1389
+      }
+    ],
+    "flaeche": 33,
+    "aktiv": true
+  },
+  "way/367295461": {
+    "addr": "Rabenplatz 82",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 32000,
+        "pacht": 1362
+      }
+    ],
+    "flaeche": 30,
+    "aktiv": true
+  },
+  "way/367665065": {
+    "addr": "Dachsgrund 31",
+    "punkte": [
+      {
+        "datum": "2026-06-19",
+        "preis": 60000,
+        "pacht": 1841
+      }
+    ],
+    "flaeche": 40,
+    "aktiv": true
+  }
+}

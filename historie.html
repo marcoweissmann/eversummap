@@ -6,6 +6,8 @@
 <title>Waldferiendorf Eversum – Preis-Historie &amp; Analyse</title>
 
 <link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
@@ -133,10 +135,34 @@ body{
 .htable tr:last-child td{ border-bottom:none; }
 
 .empty{ color:var(--muted); padding:40px 20px; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:16px; }
+/* ---------- Overview map ---------- */
+.ovmap-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:var(--shadow); }
+.ovmap{ height:400px; width:100%; border-radius:12px; overflow:hidden; background:var(--bg); }
+.ovmap-legend{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:12px; padding:2px 4px 0; }
+.ovmap-legend .li{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted); }
+.ovmap-legend .sw{ width:13px; height:13px; border-radius:4px; border:1px solid rgba(0,0,0,.12); }
+.leaflet-container{ font-family:"Hanken Grotesk", sans-serif; }
+.leaflet-control-zoom{ border:none !important; box-shadow:var(--shadow) !important; border-radius:10px !important; overflow:hidden; }
+.leaflet-control-zoom a{ width:34px !important; height:34px !important; line-height:34px !important; color:var(--green-deep) !important; background:#fff !important; border:none !important; }
+.leaflet-control-zoom a:hover{ background:var(--green-soft) !important; }
+.leaflet-control-attribution{ background:rgba(255,255,255,.82) !important; font-size:10px !important; }
+.leaflet-control-attribution a{ color:var(--green) !important; }
+.ov-pin .pp{ position:relative; display:inline-flex; align-items:center; background:var(--green); color:#fff; font-weight:700; font-size:12px; padding:4px 9px; border-radius:999px; box-shadow:0 4px 10px rgba(27,43,31,.3),0 0 0 2px #fff; transform:translate(-50%,-50%); white-space:nowrap; }
+.ov-pin .pp::after{ content:""; position:absolute; left:50%; bottom:-4px; width:8px; height:8px; background:var(--green); transform:translateX(-50%) rotate(45deg); }
+.ov-pin.sold .pp{ background:var(--wood); box-shadow:0 4px 10px rgba(122,82,48,.32),0 0 0 2px #fff; }
+.ov-pin.sold .pp::after{ background:var(--wood); }
+.leaflet-popup.ov-popup .leaflet-popup-content-wrapper{ border-radius:13px; box-shadow:0 14px 36px rgba(27,43,31,.2); border:1px solid var(--line); padding:0; overflow:hidden; }
+.leaflet-popup.ov-popup .leaflet-popup-content{ margin:0; width:212px !important; }
+.ovpop-h{ padding:11px 14px; font-family:"Newsreader",serif; font-weight:600; font-size:15px; color:#fff; background:linear-gradient(135deg,var(--green),var(--green-deep)); line-height:1.1; }
+.ovpop.sold .ovpop-h{ background:linear-gradient(135deg,var(--wood),#6f4a2c); }
+.ovpop-b{ padding:10px 14px 12px; font-size:13px; }
+.ovpop-b .r{ display:flex; justify-content:space-between; gap:14px; padding:3px 0; color:var(--muted); }
+.ovpop-b .r b{ font-weight:600; color:var(--ink); }
 @media (max-width:760px){
   .brand-sub{ display:none; }
   .back-link span{ display:none; }
   .back-link{ padding:9px; }
+  .ovmap{ height:320px; }
 }
 </style>
 </head>
@@ -265,6 +291,64 @@ function reconstructMarket(history, flaecheById){
 }
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
 
+function shortP(v){ if(v==null) return "–"; return v>=1000 ? Math.round(v/1000)+"\u00A0T\u00A0€" : formatPrice(v); }
+
+function addPin(map, latlng, label, kind, popupHtml){
+  const m=L.marker(latlng,{ icon:L.divIcon({ className:'ov-pin'+(kind==='sold'?' sold':''), html:`<div class="pp">${label}</div>`, iconSize:[0,0] }), riseOnHover:true }).addTo(map);
+  m.bindPopup(popupHtml,{ className:'ov-popup', maxWidth:240, offset:[0,-6] });
+  return m;
+}
+function ovPopupActive(a){
+  const p=a.p;
+  return `<div class="ovpop active"><div class="ovpop-h">${(p["addr:street"]||"")} ${(p["addr:housenumber"]||"")}</div><div class="ovpop-b">
+    <div class="r"><span>Angebotspreis</span><b>${formatPrice(p.preis)}</b></div>
+    <div class="r"><span>€ / m²</span><b>${formatPrice(a.qm)}</b></div>
+    <div class="r"><span>Fläche</span><b>${p.flaeche||"–"} m²</b></div>
+    <div class="r"><span>Pacht / Jahr</span><b>${formatPrice(p.pacht)}</b></div>
+  </div></div>`;
+}
+function ovPopupSold(s, sp){
+  const h=s.h, punkte=(h.punkte||[]).filter(x=>x.preis!=null);
+  const listed=punkte.length?punkte[0].datum:null;
+  const dauer=(listed&&h.verkauft_am)?daysBetween(listed,h.verkauft_am):null;
+  return `<div class="ovpop sold"><div class="ovpop-h">${h.addr||"Unbekannt"}</div><div class="ovpop-b">
+    <div class="r"><span>Verkaufspreis</span><b>${formatPrice(sp)}</b></div>
+    <div class="r"><span>Vom Markt</span><b>${h.verkauft_am||"–"}</b></div>
+    <div class="r"><span>Vermarktung</span><b>${dauer!=null?dauer+" Tage":"–"}</b></div>
+  </div></div>`;
+}
+function initOverview(geo, history, aktiv, sold){
+  const el=document.getElementById('ovMap');
+  if(!el || typeof L==='undefined') return;
+  const map=L.map(el,{ zoomControl:false, scrollWheelZoom:false, attributionControl:true }).setView([51.7027,7.3320],15);
+  L.control.zoom({ position:'bottomright' }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{ subdomains:'abcd', maxZoom:20, attribution:'© OpenStreetMap · © CARTO' }).addTo(map);
+
+  const byId={};
+  geo.features.forEach(f=>{ const id=f.properties.id||f.properties['@id']; if(id) byId[id]=f; });
+  const pts=[];
+
+  aktiv.forEach(a=>{
+    const f=byId[a.id]; if(!f) return;
+    const layer=L.geoJSON(f,{ style:{ color:'#1b4332', weight:1.2, fillColor:'#2f6b4f', fillOpacity:.7 } }).addTo(map);
+    const c=layer.getBounds().getCenter();
+    addPin(map,c,shortP(a.p.preis),'active',ovPopupActive(a));
+    pts.push(c);
+  });
+  sold.forEach(s=>{
+    const f=byId[s.id]; if(!f) return;
+    const layer=L.geoJSON(f,{ style:{ color:'#6f4a2c', weight:1.2, fillColor:'#a9743f', fillOpacity:.55 } }).addTo(map);
+    const c=layer.getBounds().getCenter();
+    const punkte=(s.h.punkte||[]).filter(x=>x.preis!=null);
+    const sp=punkte.length?punkte[punkte.length-1].preis:null;
+    addPin(map,c,shortP(sp),'sold',ovPopupSold(s,sp));
+    pts.push(c);
+  });
+
+  if(pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.4));
+  setTimeout(()=>map.invalidateSize(),250);
+}
+
 Promise.all([
   fetch('data/haeuser_final.geojson').then(r=>r.json()),
   fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
@@ -279,7 +363,18 @@ Promise.all([
     .filter(p=>p.status==="zu_verkaufen" && p.preis)
     .map(p=>{ const id=p.id||p["@id"]; const qm=p.flaeche?p.preis/p.flaeche:null; return {p,id,qm,punkte:(history[id]?.punkte)||[]}; });
 
+  const sold=Object.entries(history).filter(([id,h])=>h.aktiv===false).map(([id,h])=>({id,h}));
+
   let html="";
+  html+=`<div class="section">Lage – Angebote &amp; Verkäufe</div>
+    <div class="ovmap-card">
+      <div class="ovmap" id="ovMap"></div>
+      <div class="ovmap-legend">
+        <span class="li"><span class="sw" style="background:#2f6b4f"></span>Aktuelles Angebot · Angebotspreis</span>
+        <span class="li"><span class="sw" style="background:#a9743f"></span>Verkauft · Verkaufspreis</span>
+        <span class="li" id="ovEmpty" style="color:#9b9a8c;font-style:italic"></span>
+      </div>
+    </div>`;
 
   if(aktiv.length){
     const preise=aktiv.map(a=>a.p.preis);
@@ -341,11 +436,11 @@ Promise.all([
     html+=`<p class="empty">Aktuell keine Häuser zum Verkauf.</p>`;
   }
 
-  const sold=Object.entries(history).filter(([id,h])=>h.aktiv===false).map(([id,h])=>({id,h}));
-  if(sold.length){
+  const sold2=sold;
+  if(sold2.length){
     html+=`<div class="section">Vom Markt genommen <span class="count">vermutlich verkauft</span></div><div class="cards">`;
-    sold.sort((a,b)=>(b.h.verkauft_am||"").localeCompare(a.h.verkauft_am||""));
-    sold.forEach(({h})=>{
+    sold2.sort((a,b)=>(b.h.verkauft_am||"").localeCompare(a.h.verkauft_am||""));
+    sold2.forEach(({h})=>{
       const punkte=(h.punkte||[]).filter(x=>x.preis!=null);
       const gelistetSeit=punkte.length?punkte[0].datum:null;
       const letzterPreis=punkte.length?punkte[punkte.length-1].preis:null;
@@ -363,6 +458,9 @@ Promise.all([
   }
 
   root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';
+  initOverview(geo, history, aktiv, sold);
+  const ovEmpty=document.getElementById('ovEmpty');
+  if(ovEmpty) ovEmpty.textContent = sold.length ? '' : 'Noch keine Verkäufe erfasst – verkaufte Häuser erscheinen hier automatisch.';
 }).catch(err=>{
   console.error(err);
   document.getElementById('content').innerHTML='<p class="empty">Daten konnten nicht geladen werden.</p>';

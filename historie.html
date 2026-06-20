@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Waldferiendorf Eversum – Preis-Historie &amp; Analyse</title>
+<title>eversummap historie</title>
 
 <link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -158,6 +158,28 @@ body{
 .ovpop-b{ padding:10px 14px 12px; font-size:13px; }
 .ovpop-b .r{ display:flex; justify-content:space-between; gap:14px; padding:3px 0; color:var(--muted); }
 .ovpop-b .r b{ font-weight:600; color:var(--ink); }
+/* ---------- Scatter ---------- */
+.scatter-legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:var(--muted); }
+.scatter-legend .d{ width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+.scatter-legend .dash{ display:inline-block; width:18px; border-top:2px dashed #b9b3a3; margin-right:6px; vertical-align:middle; }
+
+/* ---------- Cost calculator ---------- */
+.cost-controls{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
+.cost-controls label{ font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; }
+.cost-controls .yr{ font-family:"Newsreader",serif; font-size:19px; color:var(--green-deep); font-weight:600; white-space:nowrap; }
+input[type=range]{ accent-color:var(--green); flex:1; min-width:170px; height:5px; cursor:pointer; }
+.cost-legend{ display:flex; gap:18px; margin:0 0 14px; font-size:12.5px; color:var(--muted); }
+.cost-legend .d{ width:12px; height:12px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:middle; }
+.cost-row{ display:grid; grid-template-columns:148px 1fr auto; gap:14px; align-items:center; padding:8px 0; }
+.cost-row .nm{ font-size:13.5px; font-weight:600; min-width:0; }
+.cost-track{ height:24px; border-radius:7px; background:var(--bg); overflow:hidden; display:flex; }
+.cost-seg-kauf{ background:var(--green); height:100%; transition:width .25s ease; }
+.cost-seg-pacht{ background:var(--wood); height:100%; transition:width .25s ease; }
+.cost-total{ font-family:"Newsreader",serif; font-weight:600; font-size:15px; color:var(--green-deep); white-space:nowrap; }
+@media (max-width:560px){
+  .cost-row{ grid-template-columns:96px 1fr; }
+  .cost-row .cost-total{ grid-column:2; text-align:right; margin-top:-2px; }
+}
 @media (max-width:760px){
   .brand-sub{ display:none; }
   .back-link span{ display:none; }
@@ -349,6 +371,69 @@ function initOverview(geo, history, aktiv, sold){
   setTimeout(()=>map.invalidateSize(),250);
 }
 
+function buildScatter(offers){
+  const pts=offers.filter(o=>o.p.flaeche&&o.p.preis).map(o=>({
+    x:o.p.flaeche, y:o.p.preis,
+    addr:(o.p["addr:street"]||"")+" "+(o.p["addr:housenumber"]||"")
+  }));
+  if(pts.length<3) return '<p class="hint">Zu wenige Angebote für eine sinnvolle Verteilung.</p>';
+  const n=pts.length; let sx=0,sy=0,sxy=0,sxx=0;
+  pts.forEach(p=>{ sx+=p.x; sy+=p.y; sxy+=p.x*p.y; sxx+=p.x*p.x; });
+  const slope=(n*sxy-sx*sy)/((n*sxx-sx*sx)||1);
+  const intercept=(sy-slope*sx)/n;
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  let xlo=Math.min(...xs), xhi=Math.max(...xs), ylo=Math.min(...ys), yhi=Math.max(...ys);
+  const xr=(xhi-xlo)||1, yr=(yhi-ylo)||1;
+  xlo-=xr*0.14; xhi+=xr*0.14; ylo=Math.max(0,ylo-yr*0.18); yhi+=yr*0.20;
+  const W=660,H=380, mL=64,mR=22,mT=20,mB=46, pw=W-mL-mR, ph=H-mT-mB;
+  const X=v=>mL+(v-xlo)/(xhi-xlo)*pw;
+  const Y=v=>mT+(1-(v-ylo)/(yhi-ylo))*ph;
+  const fmtK=v=>Math.round(v/1000)+" T€";
+  let grid='', ya='', xa='';
+  for(let i=0;i<=4;i++){
+    const yv=ylo+(yhi-ylo)*i/4, yy=Y(yv);
+    grid+=`<line x1="${mL}" y1="${yy.toFixed(1)}" x2="${W-mR}" y2="${yy.toFixed(1)}" stroke="#efece3"/>`;
+    ya+=`<text x="${mL-8}" y="${(yy+3.5).toFixed(1)}" font-size="10.5" fill="#9b9a8c" text-anchor="end" font-family="Hanken Grotesk">${fmtK(yv)}</text>`;
+  }
+  for(let i=0;i<=4;i++){
+    const xv=xlo+(xhi-xlo)*i/4, xx=X(xv);
+    xa+=`<text x="${xx.toFixed(1)}" y="${H-mB+18}" font-size="10.5" fill="#9b9a8c" text-anchor="middle" font-family="Hanken Grotesk">${Math.round(xv)} m²</text>`;
+  }
+  const trend=`<line x1="${X(xlo).toFixed(1)}" y1="${Y(slope*xlo+intercept).toFixed(1)}" x2="${X(xhi).toFixed(1)}" y2="${Y(slope*xhi+intercept).toFixed(1)}" stroke="#b9b3a3" stroke-width="2" stroke-dasharray="6 5"/>`;
+  const dots=pts.map(p=>{
+    const resid=p.y-(slope*p.x+intercept);
+    const col=resid<=0?'#2f6b4f':'#a9743f';
+    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6.5" fill="${col}" stroke="#fff" stroke-width="2"/>`+
+      `<text x="${X(p.x).toFixed(1)}" y="${(Y(p.y)-12).toFixed(1)}" font-size="10" fill="#6f6f64" text-anchor="middle" font-family="Hanken Grotesk">${p.addr}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    ${grid}
+    <line x1="${mL}" y1="${mT}" x2="${mL}" y2="${H-mB}" stroke="#e0dccf"/>
+    <line x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}" stroke="#e0dccf"/>
+    ${trend}${dots}${ya}${xa}
+    <text x="${W-mR}" y="${H-6}" font-size="10.5" fill="#9b9a8c" text-anchor="end" font-family="Hanken Grotesk">Fläche →</text>
+  </svg>`;
+}
+
+function renderCosts(years){
+  const el=document.getElementById('costBars'); if(!el) return;
+  const offers=(window.__offers||[]).map(o=>{
+    const kauf=o.p.preis||0, pachtJ=o.p.pacht||0, pacht=pachtJ*years;
+    return { nm:(o.p["addr:street"]||"")+" "+(o.p["addr:housenumber"]||""), kauf, pacht, total:kauf+pacht };
+  }).sort((a,b)=>a.total-b.total);
+  if(!offers.length){ el.innerHTML=''; return; }
+  const max=Math.max(...offers.map(o=>o.total))||1;
+  el.innerHTML=offers.map(o=>`
+    <div class="cost-row">
+      <div class="nm">${o.nm}</div>
+      <div class="cost-track">
+        <div class="cost-seg-kauf" style="width:${(o.kauf/max*100).toFixed(1)}%" title="Kaufpreis ${formatPrice(o.kauf)}"></div>
+        <div class="cost-seg-pacht" style="width:${(o.pacht/max*100).toFixed(1)}%" title="Pacht ${formatPrice(o.pacht)}"></div>
+      </div>
+      <div class="cost-total">${formatPrice(o.total)}</div>
+    </div>`).join('');
+}
+
 Promise.all([
   fetch('data/haeuser_final.geojson').then(r=>r.json()),
   fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
@@ -403,6 +488,32 @@ Promise.all([
       <div class="chart-card"><h3>Median €/m²</h3>${buildLineChart(qmSeries, formatPrice)}</div>
       <div class="chart-card"><h3>Anzahl Angebote</h3>${buildLineChart(countSeries, v=>Math.round(v))}</div>
     </div>`;
+
+    html+=`<div class="section">Preis &amp; Fläche im Vergleich</div>
+     <div class="chart-card" style="padding:18px 18px 14px">
+       ${buildScatter(aktiv)}
+       <div class="scatter-legend">
+         <span><span class="d" style="background:#2f6b4f"></span>günstiger als erwartet</span>
+         <span><span class="d" style="background:#a9743f"></span>teurer als erwartet</span>
+         <span><span class="dash"></span>Markttrend</span>
+       </div>
+       <p class="note" style="margin-top:10px">Jeder Punkt ist ein Angebot. Häuser unter der Trendlinie sind im Verhältnis zur Fläche günstiger.</p>
+     </div>`;
+
+    html+=`<div class="section">Gesamtkosten über die Zeit <span class="count">Kaufpreis + Pacht</span></div>
+     <div class="chart-card">
+       <div class="cost-controls">
+         <label for="yrs">Betrachtungszeitraum</label>
+         <input type="range" id="yrs" min="1" max="30" value="15" step="1">
+         <span class="yr"><span id="yrsVal">15</span> Jahre</span>
+       </div>
+       <div class="cost-legend">
+         <span><span class="d" style="background:#2f6b4f"></span>Kaufpreis</span>
+         <span><span class="d" style="background:#a9743f"></span>Pacht über den Zeitraum</span>
+       </div>
+       <div id="costBars"></div>
+       <p class="note" style="margin-top:12px">Über lange Zeiträume kann ein günstiges Haus mit hoher Pacht teurer werden als ein teureres mit niedriger Pacht.</p>
+     </div>`;
 
     html+=`<div class="section">Aktuelle Angebote <span class="count">günstigster €/m² zuerst</span></div><div class="cards">`;
     aktiv.sort((a,b)=>(a.qm||0)-(b.qm||0));
@@ -461,6 +572,9 @@ Promise.all([
   initOverview(geo, history, aktiv, sold);
   const ovEmpty=document.getElementById('ovEmpty');
   if(ovEmpty) ovEmpty.textContent = sold.length ? '' : 'Noch keine Verkäufe erfasst – verkaufte Häuser erscheinen hier automatisch.';
+  window.__offers=aktiv;
+  const yrs=document.getElementById('yrs');
+  if(yrs){ const lab=document.getElementById('yrsVal'); const upd=()=>{ lab.textContent=yrs.value; renderCosts(+yrs.value); }; yrs.addEventListener('input',upd); upd(); }
 }).catch(err=>{
   console.error(err);
   document.getElementById('content').innerHTML='<p class="empty">Daten konnten nicht geladen werden.</p>';

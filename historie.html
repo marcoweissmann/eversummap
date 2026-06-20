@@ -2,352 +2,371 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Waldferiendorf Eversum – Preis-Historie & Analyse</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waldferiendorf Eversum – Preis-Historie &amp; Analyse</title>
 
 <link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
 
 <style>
-
+:root{
+  --green:#2f6b4f;
+  --green-deep:#1b4332;
+  --green-soft:#e7efe8;
+  --wood:#a9743f;
+  --bg:#f6f4ee;
+  --ink:#23241f;
+  --muted:#6f6f64;
+  --line:#e7e2d6;
+  --card:#ffffff;
+  --down:#2f7d4f;
+  --up:#b4452f;
+  --shadow:0 6px 24px rgba(27,43,31,.10), 0 1px 3px rgba(27,43,31,.06);
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
 body{
-  margin:0;
-  padding:24px;
-  font-family:sans-serif;
-  font-size:14px;
-  color:#222;
-  background:#fafafa;
+  font-family:"Hanken Grotesk", system-ui, sans-serif;
+  color:var(--ink); background:var(--bg);
+  font-size:14px; -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 12% -8%, rgba(47,107,79,.06), transparent 42%);
 }
 
-h1{ font-size:20px; margin:0 0 4px; }
+/* ---------- Header ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:14px;
+  padding:14px clamp(16px,4vw,40px);
+  background:rgba(246,244,238,.86);
+  backdrop-filter:saturate(1.4) blur(14px);
+  -webkit-backdrop-filter:saturate(1.4) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{ display:flex; align-items:center; gap:11px; min-width:0; }
+.brand-mark{ width:34px; height:34px; flex:none; display:grid; place-items:center; background:var(--green); border-radius:9px; box-shadow:0 2px 8px rgba(47,107,79,.35); }
+.brand-mark svg{ width:20px; height:20px; }
+.brand-name{ font-family:"Newsreader",serif; font-weight:600; font-size:18px; color:var(--green-deep); white-space:nowrap; }
+.brand-sub{ font-size:11.5px; color:var(--muted); white-space:nowrap; }
+.brand-text{ display:flex; flex-direction:column; line-height:1.05; min-width:0; }
+.spacer{ flex:1; }
+.back-link{
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none; white-space:nowrap;
+  background:var(--green); color:#fff; font-weight:600; font-size:13px;
+  padding:9px 14px; border-radius:10px; box-shadow:0 2px 8px rgba(47,107,79,.3);
+  transition:background .12s ease, transform .12s ease;
+}
+.back-link:hover{ background:var(--green-deep); transform:translateY(-1px); }
+.back-link svg{ width:15px; height:15px; }
 
-.sub{ color:#666; margin:0 0 20px; }
-.sub a{ color:#1f78b4; }
+/* ---------- Page ---------- */
+.wrap{ max-width:1120px; margin:0 auto; padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 64px; }
+
+.page-hero{ margin:8px 0 30px; }
+.page-hero h1{
+  font-family:"Newsreader",serif; font-weight:600;
+  font-size:clamp(28px,5vw,42px); line-height:1.05; margin:0 0 8px;
+  color:var(--green-deep); letter-spacing:-.3px;
+}
+.page-hero p{ margin:0; color:var(--muted); font-size:15px; max-width:60ch; }
 
 .section{
-  font-size:16px;
-  font-weight:600;
-  margin:28px 0 12px;
+  display:flex; align-items:baseline; gap:12px;
+  font-family:"Newsreader",serif; font-size:22px; font-weight:600;
+  color:var(--green-deep); margin:40px 0 16px;
 }
+.section::after{ content:""; flex:1; height:1px; background:var(--line); }
+.section .count{ font-family:"Hanken Grotesk",sans-serif; font-size:13px; font-weight:600; color:var(--muted); }
 
-/* KPI-Kacheln */
-.kpis{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
-  gap:12px;
-  margin-bottom:8px;
-}
+/* ---------- KPI ---------- */
+.kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; }
 .kpi{
-  background:white;
-  border:1px solid #e3e3e3;
-  border-radius:8px;
-  padding:12px 14px;
+  background:var(--card); border:1px solid var(--line); border-radius:16px;
+  padding:16px 18px; box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
-.kpi .label{ font-size:12px; color:#666; }
-.kpi .value{ font-size:20px; font-weight:500; margin-top:2px; }
-.kpi .sub2{ font-size:12px; color:#999; margin-top:2px; }
-.note{ color:#999; font-size:12px; font-style:italic; margin:6px 0 0; }
+.kpi::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--green); opacity:.85; }
+.kpi .label{ font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:600; }
+.kpi .value{ font-family:"Newsreader",serif; font-size:27px; font-weight:600; color:var(--green-deep); margin-top:5px; line-height:1.05; }
+.kpi .sub2{ font-size:12px; color:var(--muted); margin-top:4px; }
+.note{ color:var(--muted); font-size:12.5px; font-style:italic; margin:12px 2px 0; }
 
-/* Charts */
-.charts{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
-  gap:16px;
-}
-.chart-card{
-  background:white;
-  border:1px solid #e3e3e3;
-  border-radius:8px;
-  padding:14px 16px;
-}
-.chart-card h3{ font-size:14px; margin:0 0 6px; }
+/* ---------- Charts ---------- */
+.charts{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; }
+.chart-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px; box-shadow:var(--shadow); }
+.chart-card h3{ font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 10px; font-weight:600; }
 
-/* Karten */
-.cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
-  gap:16px;
-}
+/* ---------- Offer cards ---------- */
+.cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:16px; }
 .card{
-  background:white;
-  border:1px solid #e3e3e3;
-  border-radius:8px;
-  padding:14px 16px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  background:var(--card); border:1px solid var(--line); border-radius:16px;
+  padding:18px 18px 16px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column;
 }
-.card h2{ font-size:16px; margin:0 0 6px; }
-.card.sold{ opacity:0.85; }
+.card-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.card h2{ font-family:"Newsreader",serif; font-size:19px; font-weight:600; margin:0; color:var(--ink); line-height:1.1; }
+.card .big-price{ font-family:"Newsreader",serif; font-size:26px; font-weight:600; color:var(--green-deep); white-space:nowrap; line-height:1; }
+.card.sold{ background:#faf8f3; }
+.card.sold h2{ color:var(--muted); }
 
-.line{ font-size:13px; margin-bottom:4px; }
-.line b{ font-size:15px; }
+.statline{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0 4px; }
+.statbox{ background:var(--bg); border-radius:10px; padding:9px 10px; }
+.statbox .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+.statbox .v{ font-size:14.5px; font-weight:600; margin-top:2px; }
 
-.badge{
-  display:inline-block;
-  font-size:12px;
-  padding:2px 8px;
-  border-radius:10px;
-  margin-left:4px;
-}
+.badge{ display:inline-block; font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:999px; }
 .badge.cheap{ background:#e6f4ea; color:#1a7f37; }
-.badge.exp{ background:#fde8e8; color:#b42318; }
-.badge.mid{ background:#eee; color:#555; }
+.badge.exp{ background:#fbe9e6; color:#b4452f; }
+.badge.mid{ background:#efece4; color:#6f6f64; }
 
-.price-history svg{ display:block; margin:6px 0; }
+.price-history{ margin:12px 0 2px; }
+.price-history svg{ display:block; width:100%; }
+.price-delta{ font-size:13px; font-weight:600; margin:4px 0 6px; display:flex; align-items:center; gap:6px; }
+.price-delta.down{ color:var(--down); }
+.price-delta.up{ color:var(--up); }
+.price-delta.flat{ color:var(--muted); }
+.hint{ color:var(--muted); font-style:italic; font-size:12.5px; margin:12px 0 6px; padding:10px 12px; background:var(--bg); border-radius:10px; }
 
-.price-delta{ font-size:13px; margin:2px 0 8px; }
-.price-delta.down{ color:#1a7f37; }
-.price-delta.up{ color:#b42318; }
-.price-delta.flat{ color:#666; }
+.htable{ border-collapse:collapse; width:100%; margin-top:12px; }
+.htable th{ text-align:left; border-bottom:1px solid var(--line); padding:6px 8px; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:600; }
+.htable td{ padding:7px 8px; border-bottom:1px solid #f1ede3; font-size:13px; }
+.htable tr:last-child td{ border-bottom:none; }
 
-.hint{ color:#999; font-style:italic; font-size:12px; margin:6px 0 8px; }
-
-table{ border-collapse:collapse; width:100%; margin-top:6px; }
-th{ text-align:left; border-bottom:1px solid #ddd; padding:4px 6px; font-size:12px; color:#555; }
-td{ padding:4px 6px; border-bottom:1px solid #f0f0f0; }
-tr:last-child td{ border-bottom:none; }
-
-.empty{ color:#666; padding:20px; }
-
+.empty{ color:var(--muted); padding:40px 20px; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:16px; }
+@media (max-width:760px){
+  .brand-sub{ display:none; }
+  .back-link span{ display:none; }
+  .back-link{ padding:9px; }
+}
 </style>
 </head>
 
 <body>
 
-<h1>Preis-Historie & Analyse</h1>
-<p class="sub">Waldferiendorf Eversum · <a href="index.html">← zurück zur Karte</a></p>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l8 10.5h-4l5 7h-4.8L26 29H6l5.8-7.5H7l5-7H8z" fill="#fff"/><rect x="14.2" y="25.5" width="3.6" height="4.5" rx=".6" fill="#cfe3d4"/></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">Waldferiendorf Eversum</span>
+      <span class="brand-sub">Preis-Historie &amp; Marktanalyse</span>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <a class="back-link" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l-6-6 6-6"/><path d="M3 12h13a5 5 0 0 1 0 10h-1"/></svg>
+    <span>Zurück zur Karte</span>
+  </a>
+</header>
 
-<div id="content"></div>
+<div class="wrap">
+  <div class="page-hero">
+    <h1>Preis-Historie &amp; Analyse</h1>
+    <p>Marktüberblick, Preisentwicklung und Detailverläufe der Ferienhäuser im Waldferiendorf Eversum.</p>
+  </div>
+  <div id="content"></div>
+</div>
 
 <script>
-
-// ---------- Hilfsfunktionen ----------
-
 function formatPrice(value){
- if(value==null) return "-";
- return new Intl.NumberFormat('de-DE').format(Math.round(value))+ " €";
+  if(value==null) return "–";
+  return new Intl.NumberFormat('de-DE').format(Math.round(value)) + "\u00A0€";
 }
-
 function formatMonth(iso){
- const d=new Date(iso);
- return String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+  const d=new Date(iso);
+  return String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
 }
-
 function median(arr){
- if(!arr.length) return null;
- const a=[...arr].sort((x,y)=>x-y);
- const m=Math.floor(a.length/2);
- return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+  if(!arr.length) return null;
+  const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
 }
+function mean(arr){ return arr.length ? arr.reduce((s,x)=>s+x,0)/arr.length : null; }
 
-function mean(arr){
- if(!arr.length) return null;
- return arr.reduce((s,x)=>s+x,0)/arr.length;
-}
-
-// Sparkline (Verlauf eines Hauses)
 function buildSparkline(punkte){
- const pts=(punkte||[]).filter(p=>p.preis!=null);
- if(pts.length<2) return "";
- const W=290,H=60,pad=5;
- const v=pts.map(p=>p.preis), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
- const x=i=>pad+(W-2*pad)*(i/(pts.length-1));
- const y=val=>pad+(H-2*pad)*(1-(val-min)/span);
- const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
- const dots=pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.preis).toFixed(1)}" r="3" fill="#1f78b4"/>`).join("");
- return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>${dots}</svg>`;
+  const pts=(punkte||[]).filter(p=>p.preis!=null);
+  if(pts.length<2) return "";
+  const W=300,H=64,pad=6;
+  const v=pts.map(p=>p.preis), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
+  const x=i=>pad+(W-2*pad)*(i/(pts.length-1));
+  const y=val=>pad+(H-2*pad)*(1-(val-min)/span);
+  const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
+  const area=`M${x(0).toFixed(1)},${H-pad} `+pts.map((p,i)=>`L${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ")+` L${x(pts.length-1).toFixed(1)},${H-pad} Z`;
+  const dots=pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.preis).toFixed(1)}" r="3" fill="#2f6b4f" stroke="#fff" stroke-width="1.5"/>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" height="${H}">
+    <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".18"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#spg)"/>
+    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
 }
 
 function priceDeltaHtml(punkte){
- const pts=(punkte||[]).filter(p=>p.preis!=null);
- if(pts.length<2) return "";
- const first=pts[0], last=pts[pts.length-1], diff=last.preis-first.preis;
- const cls=diff<0?"down":diff>0?"up":"flat";
- const sign=diff>0?"+":diff<0?"−":"±";
- const arrow=diff<0?"▼":diff>0?"▲":"→";
- return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
+  const pts=(punkte||[]).filter(p=>p.preis!=null);
+  if(pts.length<2) return "";
+  const first=pts[0], last=pts[pts.length-1], diff=last.preis-first.preis;
+  const cls=diff<0?"down":diff>0?"up":"flat";
+  const sign=diff>0?"+":diff<0?"−":"±";
+  const arrow=diff<0?"▼":diff>0?"▲":"→";
+  return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
 }
 
-// Liniendiagramm mit Min/Max- und Datums-Labels (Markt-Index)
 function buildLineChart(series, fmt){
- if(series.length<2){
-   return '<p class="hint">Mindestens zwei Stichtage nötig – füllt sich, sobald sich Daten über die Zeit ansammeln.</p>';
- }
- const W=300,H=120,padL=8,padR=8,padT=12,padB=22;
- const v=series.map(s=>s.wert), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
- const x=i=>padL+(W-padL-padR)*(i/(series.length-1));
- const y=val=>padT+(H-padT-padB)*(1-(val-min)/span);
- const line=series.map((s,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ");
- const dots=series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s.wert).toFixed(1)}" r="2.5" fill="#1f78b4"/>`).join("");
- return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
-   <path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>${dots}
-   <text x="${padL}" y="${(y(max)-3).toFixed(1)}" font-size="10" fill="#999">${fmt(max)}</text>
-   <text x="${padL}" y="${(y(min)+10).toFixed(1)}" font-size="10" fill="#999">${fmt(min)}</text>
-   <text x="${padL}" y="${H-6}" font-size="10" fill="#999">${formatMonth(series[0].datum)}</text>
-   <text x="${W-padR}" y="${H-6}" font-size="10" fill="#999" text-anchor="end">${formatMonth(series[series.length-1].datum)}</text>
- </svg>`;
+  if(series.length<2){
+    return '<p class="hint">Mindestens zwei Stichtage nötig – füllt sich, sobald sich Daten über die Zeit ansammeln.</p>';
+  }
+  const W=320,H=140,padL=10,padR=10,padT=14,padB=24;
+  const v=series.map(s=>s.wert), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
+  const x=i=>padL+(W-padL-padR)*(i/(series.length-1));
+  const y=val=>padT+(H-padT-padB)*(1-(val-min)/span);
+  const line=series.map((s,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ");
+  const area=`M${x(0).toFixed(1)},${H-padB} `+series.map((s,i)=>`L${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ")+` L${x(series.length-1).toFixed(1)},${H-padB} Z`;
+  const dots=series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s.wert).toFixed(1)}" r="3" fill="#2f6b4f" stroke="#fff" stroke-width="1.5"/>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+    <defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".16"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${padL}" y1="${(H-padB).toFixed(1)}" x2="${W-padR}" y2="${(H-padB).toFixed(1)}" stroke="#e7e2d6"/>
+    <path d="${area}" fill="url(#lcg)"/>
+    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>${dots}
+    <text x="${padL}" y="${(y(max)-4).toFixed(1)}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${fmt(max)}</text>
+    <text x="${padL}" y="${(y(min)+11).toFixed(1)}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${fmt(min)}</text>
+    <text x="${padL}" y="${H-7}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${formatMonth(series[0].datum)}</text>
+    <text x="${W-padR}" y="${H-7}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk" text-anchor="end">${formatMonth(series[series.length-1].datum)}</text>
+  </svg>`;
 }
 
 function badge(qm, medianQm){
- if(qm==null || medianQm==null) return "";
- const diff=(qm-medianQm)/medianQm;
- const pct=Math.round(diff*100);
- if(pct<=-5) return `<span class="badge cheap">${pct}% ggü. Median</span>`;
- if(pct>=5)  return `<span class="badge exp">+${pct}% ggü. Median</span>`;
- return `<span class="badge mid">≈ Median</span>`;
+  if(qm==null||medianQm==null) return "";
+  const pct=Math.round((qm-medianQm)/medianQm*100);
+  if(pct<=-5) return `<span class="badge cheap">${pct}% ggü. Median</span>`;
+  if(pct>=5)  return `<span class="badge exp">+${pct}% ggü. Median</span>`;
+  return `<span class="badge mid">≈ Median</span>`;
 }
 
-// Markt-Index: Zeitreihe aus der Historie rekonstruieren.
-// Für jeden Stichtag den Preis jedes Hauses fortschreiben (letzter Punkt <= Datum),
-// Häuser ohne ersten Punkt oder bereits vom Markt ausnehmen.
 function reconstructMarket(history, flaecheById){
- const dates=new Set();
- Object.values(history).forEach(h=>(h.punkte||[]).forEach(p=>dates.add(p.datum)));
- const sorted=[...dates].sort();
-
- const priceSeries=[], qmSeries=[], countSeries=[];
-
- sorted.forEach(D=>{
-   const preise=[], qm=[];
-   Object.entries(history).forEach(([id,h])=>{
-     const pts=(h.punkte||[]).filter(p=>p.datum<=D);
-     if(!pts.length) return;
-     if(h.verkauft_am && D>=h.verkauft_am) return;
-     const preis=pts[pts.length-1].preis;
-     if(preis==null) return;
-     preise.push(preis);
-     const fl=h.flaeche || flaecheById[id];
-     if(fl) qm.push(preis/fl);
-   });
-   if(preise.length){
-     priceSeries.push({datum:D, wert:median(preise)});
-     countSeries.push({datum:D, wert:preise.length});
-   }
-   if(qm.length) qmSeries.push({datum:D, wert:median(qm)});
- });
-
- return {priceSeries, qmSeries, countSeries};
+  const dates=new Set();
+  Object.values(history).forEach(h=>(h.punkte||[]).forEach(p=>dates.add(p.datum)));
+  const sorted=[...dates].sort();
+  const priceSeries=[], qmSeries=[], countSeries=[];
+  sorted.forEach(D=>{
+    const preise=[], qm=[];
+    Object.entries(history).forEach(([id,h])=>{
+      const pts=(h.punkte||[]).filter(p=>p.datum<=D);
+      if(!pts.length) return;
+      if(h.verkauft_am && D>=h.verkauft_am) return;
+      const preis=pts[pts.length-1].preis;
+      if(preis==null) return;
+      preise.push(preis);
+      const fl=h.flaeche || flaecheById[id];
+      if(fl) qm.push(preis/fl);
+    });
+    if(preise.length){ priceSeries.push({datum:D,wert:median(preise)}); countSeries.push({datum:D,wert:preise.length}); }
+    if(qm.length) qmSeries.push({datum:D,wert:median(qm)});
+  });
+  return {priceSeries, qmSeries, countSeries};
 }
-
-function daysBetween(a,b){
- return Math.round((new Date(b)-new Date(a))/86400000);
-}
-
-
-// ---------- Daten laden & rendern ----------
+function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
 
 Promise.all([
- fetch('data/haeuser_final.geojson').then(r=>r.json()),
- fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
-])
-.then(([geo, history])=>{
+  fetch('data/haeuser_final.geojson').then(r=>r.json()),
+  fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+]).then(([geo, history])=>{
+  history=history||{};
+  const root=document.getElementById('content');
 
- history=history||{};
- const root=document.getElementById('content');
+  const flaecheById={};
+  geo.features.forEach(f=>{ const p=f.properties, id=p.id||p["@id"]; if(id) flaecheById[id]=p.flaeche; });
 
- // id -> flaeche (Fläche ist konstant; aus dem GeoJSON)
- const flaecheById={};
- geo.features.forEach(f=>{
-   const p=f.properties, id=p.id||p["@id"];
-   if(id) flaecheById[id]=p.flaeche;
- });
+  const aktiv=geo.features.map(f=>f.properties)
+    .filter(p=>p.status==="zu_verkaufen" && p.preis)
+    .map(p=>{ const id=p.id||p["@id"]; const qm=p.flaeche?p.preis/p.flaeche:null; return {p,id,qm,punkte:(history[id]?.punkte)||[]}; });
 
- // Aktuelle Angebote
- const aktiv=geo.features
-   .map(f=>f.properties)
-   .filter(p=>p.status==="zu_verkaufen" && p.preis)
-   .map(p=>{
-     const id=p.id||p["@id"];
-     const qm=p.flaeche ? p.preis/p.flaeche : null;
-     return {p, id, qm, punkte:(history[id]?.punkte)||[]};
-   });
+  let html="";
 
- let html="";
+  if(aktiv.length){
+    const preise=aktiv.map(a=>a.p.preis);
+    const flaechen=aktiv.map(a=>a.p.flaeche).filter(Boolean);
+    const pachten=aktiv.map(a=>a.p.pacht).filter(Boolean);
+    const qms=aktiv.map(a=>a.qm).filter(x=>x!=null);
+    const medianQm=median(qms);
 
- // --- KPI-Kacheln ---
- if(aktiv.length){
-   const preise=aktiv.map(a=>a.p.preis);
-   const flaechen=aktiv.map(a=>a.p.flaeche).filter(Boolean);
-   const pachten=aktiv.map(a=>a.p.pacht).filter(Boolean);
-   const qms=aktiv.map(a=>a.qm).filter(x=>x!=null);
-   const medianQm=median(qms);
+    const kpi=(label,value,sub)=>`<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${sub?`<div class="sub2">${sub}</div>`:""}</div>`;
 
-   const kpi=(label,value,sub)=>`<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${sub?`<div class="sub2">${sub}</div>`:""}</div>`;
+    html+=`<div class="section">Marktüberblick <span class="count">aktuelle Angebote</span></div>`;
+    html+=`<div class="kpis">
+      ${kpi("Häuser zu verkaufen", aktiv.length)}
+      ${kpi("Median-Preis", formatPrice(median(preise)), "Ø "+formatPrice(mean(preise)))}
+      ${kpi("Median €/m²", formatPrice(medianQm), "Ø "+formatPrice(mean(qms)))}
+      ${kpi("Preisspanne", formatPrice(Math.min(...preise))+" – "+formatPrice(Math.max(...preise)))}
+      ${kpi("Median-Pacht / Jahr", formatPrice(median(pachten)))}
+      ${kpi("Median-Fläche", (median(flaechen)||"–")+" m²")}
+    </div>`;
+    html+=`<p class="note">Bei kleiner Anzahl Angebote ist der Median aussagekräftiger als der Mittelwert.</p>`;
 
-   html+=`<div class="section">Marktüberblick (aktuelle Angebote)</div>`;
-   html+=`<div class="kpis">
-     ${kpi("Häuser zu verkaufen", aktiv.length)}
-     ${kpi("Median-Preis", formatPrice(median(preise)), "Ø "+formatPrice(mean(preise)))}
-     ${kpi("Median €/m²", formatPrice(medianQm), "Ø "+formatPrice(mean(qms)))}
-     ${kpi("Preisspanne", formatPrice(Math.min(...preise))+" – "+formatPrice(Math.max(...preise)))}
-     ${kpi("Median-Pacht/Jahr", formatPrice(median(pachten)))}
-     ${kpi("Median-Fläche", (median(flaechen)||"-")+" m²")}
-   </div>`;
-   html+=`<p class="note">Bei kleiner Anzahl Angebote ist der Median aussagekräftiger als der Mittelwert.</p>`;
+    const {priceSeries, qmSeries, countSeries}=reconstructMarket(history, flaecheById);
+    html+=`<div class="section">Marktentwicklung über Zeit</div>`;
+    html+=`<div class="charts">
+      <div class="chart-card"><h3>Median-Preis</h3>${buildLineChart(priceSeries, formatPrice)}</div>
+      <div class="chart-card"><h3>Median €/m²</h3>${buildLineChart(qmSeries, formatPrice)}</div>
+      <div class="chart-card"><h3>Anzahl Angebote</h3>${buildLineChart(countSeries, v=>Math.round(v))}</div>
+    </div>`;
 
-   // --- Markt-Index über Zeit ---
-   const {priceSeries, qmSeries, countSeries}=reconstructMarket(history, flaecheById);
-   html+=`<div class="section">Marktentwicklung über Zeit</div>`;
-   html+=`<div class="charts">
-     <div class="chart-card"><h3>Median-Preis</h3>${buildLineChart(priceSeries, formatPrice)}</div>
-     <div class="chart-card"><h3>Median €/m²</h3>${buildLineChart(qmSeries, formatPrice)}</div>
-     <div class="chart-card"><h3>Anzahl Angebote</h3>${buildLineChart(countSeries, v=>Math.round(v))}</div>
-   </div>`;
+    html+=`<div class="section">Aktuelle Angebote <span class="count">günstigster €/m² zuerst</span></div><div class="cards">`;
+    aktiv.sort((a,b)=>(a.qm||0)-(b.qm||0));
+    aktiv.forEach(a=>{
+      const p=a.p;
+      const punkte=a.punkte.filter(x=>x.preis!=null);
+      const verlauf = punkte.length>1
+        ? `<div class="price-history">${buildSparkline(punkte)}</div>${priceDeltaHtml(punkte)}`
+        : `<p class="hint">Nur ein Datenpunkt – der Verlauf erscheint nach der ersten Preisänderung.</p>`;
+      let rows="";
+      [...punkte].reverse().forEach(pt=>{
+        rows+=`<tr><td>${formatMonth(pt.datum)}</td><td>${formatPrice(pt.preis)}</td><td>${pt.pacht!=null?formatPrice(pt.pacht):"–"}</td></tr>`;
+      });
+      html+=`<div class="card">
+        <div class="card-head">
+          <h2>${p["addr:street"]||""} ${p["addr:housenumber"]||""}</h2>
+          <div class="big-price">${formatPrice(p.preis)}</div>
+        </div>
+        <div style="margin-top:8px">${badge(a.qm, medianQm)}</div>
+        <div class="statline">
+          <div class="statbox"><div class="k">€ / m²</div><div class="v">${formatPrice(a.qm)}</div></div>
+          <div class="statbox"><div class="k">Fläche</div><div class="v">${p.flaeche||"–"} m²</div></div>
+          <div class="statbox"><div class="k">Pacht/Jahr</div><div class="v">${formatPrice(p.pacht)}</div></div>
+        </div>
+        ${verlauf}
+        <table class="htable"><tr><th>Stand</th><th>Preis</th><th>Pacht</th></tr>${rows}</table>
+      </div>`;
+    });
+    html+=`</div>`;
+  } else {
+    html+=`<p class="empty">Aktuell keine Häuser zum Verkauf.</p>`;
+  }
 
-   // --- Aktuelle Angebote (Karten) ---
-   html+=`<div class="section">Aktuelle Angebote</div><div class="cards">`;
-   aktiv.sort((a,b)=>(a.qm||0)-(b.qm||0)); // günstigster €/m² zuerst
-   aktiv.forEach(a=>{
-     const p=a.p;
-     const punkte=a.punkte.filter(x=>x.preis!=null);
-     const verlauf = punkte.length>1
-       ? `<div class="price-history">${buildSparkline(punkte)}</div>${priceDeltaHtml(punkte)}`
-       : `<p class="hint">Nur ein Datenpunkt – Verlauf erscheint nach der ersten Preisänderung.</p>`;
-     let rows="";
-     [...punkte].reverse().forEach(pt=>{
-       rows+=`<tr><td>${formatMonth(pt.datum)}</td><td>${formatPrice(pt.preis)}</td><td>${pt.pacht!=null?formatPrice(pt.pacht):"-"}</td></tr>`;
-     });
-     html+=`<div class="card">
-       <h2>${p["addr:street"]||""} ${p["addr:housenumber"]||""}</h2>
-       <div class="line">Preis: <b>${formatPrice(p.preis)}</b></div>
-       <div class="line">€/m²: ${formatPrice(a.qm)} ${badge(a.qm, median(aktiv.map(x=>x.qm).filter(v=>v!=null)))}</div>
-       <div class="line">Fläche: ${p.flaeche||"-"} m² · Pacht: ${formatPrice(p.pacht)}/Jahr</div>
-       ${verlauf}
-       <table><tr><th>Stand</th><th>Preis</th><th>Pacht</th></tr>${rows}</table>
-     </div>`;
-   });
-   html+=`</div>`;
- } else {
-   html+=`<p class="empty">Aktuell keine Häuser zum Verkauf.</p>`;
- }
+  const sold=Object.entries(history).filter(([id,h])=>h.aktiv===false).map(([id,h])=>({id,h}));
+  if(sold.length){
+    html+=`<div class="section">Vom Markt genommen <span class="count">vermutlich verkauft</span></div><div class="cards">`;
+    sold.sort((a,b)=>(b.h.verkauft_am||"").localeCompare(a.h.verkauft_am||""));
+    sold.forEach(({h})=>{
+      const punkte=(h.punkte||[]).filter(x=>x.preis!=null);
+      const gelistetSeit=punkte.length?punkte[0].datum:null;
+      const letzterPreis=punkte.length?punkte[punkte.length-1].preis:null;
+      const dauer=(gelistetSeit && h.verkauft_am)?daysBetween(gelistetSeit, h.verkauft_am):null;
+      html+=`<div class="card sold">
+        <div class="card-head"><h2>${h.addr||"Unbekannt"}</h2><div class="big-price">${formatPrice(letzterPreis)}</div></div>
+        <div class="statline">
+          <div class="statbox"><div class="k">Vom Markt</div><div class="v" style="font-size:13px">${h.verkauft_am||"–"}</div></div>
+          <div class="statbox"><div class="k">Vermarktung</div><div class="v">${dauer!=null?dauer+" Tage":"–"}</div></div>
+          <div class="statbox"><div class="k">Letzter Preis</div><div class="v">${formatPrice(letzterPreis)}</div></div>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
 
- // --- Vom Markt / vermutlich verkauft ---
- const sold=Object.entries(history)
-   .filter(([id,h])=>h.aktiv===false)
-   .map(([id,h])=>({id,h}));
-
- if(sold.length){
-   html+=`<div class="section">Vom Markt genommen / vermutlich verkauft</div><div class="cards">`;
-   sold.sort((a,b)=>(b.h.verkauft_am||"").localeCompare(a.h.verkauft_am||""));
-   sold.forEach(({h})=>{
-     const punkte=(h.punkte||[]).filter(x=>x.preis!=null);
-     const gelistetSeit=punkte.length?punkte[0].datum:null;
-     const letzterPreis=punkte.length?punkte[punkte.length-1].preis:null;
-     const dauer=(gelistetSeit && h.verkauft_am)?daysBetween(gelistetSeit, h.verkauft_am):null;
-     html+=`<div class="card sold">
-       <h2>${h.addr||"Unbekannt"}</h2>
-       <div class="line">Letzter Preis: <b>${formatPrice(letzterPreis)}</b></div>
-       <div class="line">Vom Markt seit: ${h.verkauft_am||"-"}</div>
-       <div class="line">Vermarktungsdauer: ${dauer!=null?dauer+" Tage":"-"}</div>
-     </div>`;
-   });
-   html+=`</div>`;
- }
-
- root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';
-})
-.catch(()=>{
- document.getElementById('content').innerHTML='<p class="empty">Daten konnten nicht geladen werden.</p>';
+  root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';
+}).catch(err=>{
+  console.error(err);
+  document.getElementById('content').innerHTML='<p class="empty">Daten konnten nicht geladen werden.</p>';
 });
-
 </script>
-
 </body>
 </html>

@@ -2,91 +2,269 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Waldferiendorf Eversum – Häuser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Waldferiendorf Eversum – Häuser zum Verkauf</title>
 
 <link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
-  
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
 
 <style>
+:root{
+  --green:#2f6b4f;
+  --green-deep:#1b4332;
+  --green-soft:#e7efe8;
+  --wood:#a9743f;
+  --bg:#f6f4ee;
+  --ink:#23241f;
+  --muted:#6f6f64;
+  --line:#e7e2d6;
+  --card:#ffffff;
+  --down:#2f7d4f;
+  --up:#b4452f;
+  --shadow:0 6px 24px rgba(27,43,31,.12), 0 1px 3px rgba(27,43,31,.08);
+  --shadow-lg:0 18px 50px rgba(27,43,31,.20);
+}
 
-html, body {
-  margin:0;
-  padding:0;
-  height:100%;
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0; height:100%;
+  font-family:"Hanken Grotesk", system-ui, sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
 }
 
 #map{
-  height:100vh;
-  width:100%;
+  position:absolute; inset:0;
+  height:100%; width:100%;
+  background:var(--bg);
+  z-index:0;
 }
 
-.panel{
-  background:white;
-  padding:12px;
-  border-radius:6px;
-  box-shadow:0 0 8px rgba(0,0,0,0.3);
-  font-family:sans-serif;
-  font-size:13px;
-  max-width:260px;
+/* ---------- Header ---------- */
+.app-header{
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  display:flex; align-items:center; gap:14px;
+  padding:14px 18px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:saturate(1.4) blur(14px);
+  -webkit-backdrop-filter:saturate(1.4) blur(14px);
+  border-bottom:1px solid rgba(231,226,214,.9);
 }
+.brand{ display:flex; align-items:center; gap:11px; min-width:0; }
+.brand-mark{
+  width:34px; height:34px; flex:none;
+  display:grid; place-items:center;
+  background:var(--green); border-radius:9px;
+  box-shadow:0 2px 8px rgba(47,107,79,.35);
+}
+.brand-mark svg{ width:20px; height:20px; display:block; }
+.brand-text{ display:flex; flex-direction:column; line-height:1.05; min-width:0; }
+.brand-name{
+  font-family:"Newsreader", serif; font-weight:600;
+  font-size:18px; letter-spacing:.1px; color:var(--green-deep);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.brand-sub{ font-size:11.5px; color:var(--muted); white-space:nowrap; }
+.header-spacer{ flex:1 1 auto; }
 
-.legend-item{
-  display:flex;
+.count-chip{
+  display:inline-flex; align-items:center; gap:7px;
+  background:var(--green-soft); color:var(--green-deep);
+  font-weight:600; font-size:13px;
+  padding:7px 12px; border-radius:999px;
+  white-space:nowrap;
+}
+.count-chip .dot{ width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(47,107,79,.18); }
+
+.hist-link{
+  display:inline-flex; align-items:center; gap:7px;
+  text-decoration:none; white-space:nowrap;
+  background:var(--green); color:#fff;
+  font-weight:600; font-size:13px;
+  padding:9px 14px; border-radius:10px;
+  box-shadow:0 2px 8px rgba(47,107,79,.3);
+  transition:transform .12s ease, background .12s ease;
+}
+.hist-link:hover{ background:var(--green-deep); transform:translateY(-1px); }
+.hist-link svg{ width:15px; height:15px; }
+
+/* ---------- Sidebar / list ---------- */
+.sidebar{
+  position:fixed; z-index:900;
+  top:78px; left:18px;
+  width:332px; max-height:calc(100vh - 98px);
+  display:flex; flex-direction:column;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.sidebar-head{
+  padding:16px 18px 12px;
+  border-bottom:1px solid var(--line);
+}
+.sidebar-title{
+  font-family:"Newsreader", serif; font-size:17px; font-weight:600;
+  color:var(--green-deep); margin:0 0 10px;
+}
+.legend{ display:flex; flex-wrap:wrap; gap:8px 16px; }
+.legend-item{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted); }
+.legend-swatch{ width:13px; height:13px; border-radius:4px; border:1px solid rgba(0,0,0,.12); }
+
+.list-scroll{ overflow-y:auto; overflow-x:hidden; padding:8px; -webkit-overflow-scrolling:touch; }
+.list-scroll::-webkit-scrollbar{ width:8px; }
+.list-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:8px; }
+
+.house-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:2px 12px;
   align-items:center;
-  margin-bottom:5px;
-}
-
-.legend-color{
-  width:14px;
-  height:14px;
-  margin-right:6px;
-  border:1px solid #444;
-}
-
-.sales-table{
-  border-collapse:collapse;
-  width:100%;
-  margin-top:6px;
-}
-
-.sales-table th{
-  text-align:left;
-  border-bottom:1px solid #ddd;
-  padding:4px;
-}
-
-.sales-table td{
-  padding:4px;
-}
-
-.sales-table tr:hover{
-  background:#f3f3f3;
-}
-
-.sales-table button{
-  font-size:12px;
-  padding:2px 6px;
+  padding:12px 12px;
+  border-radius:11px;
   cursor:pointer;
+  transition:background .12s ease;
+  border:1px solid transparent;
+}
+.house-row:hover{ background:var(--green-soft); }
+.house-row.active{ background:var(--green-soft); border-color:rgba(47,107,79,.35); }
+.house-addr{ font-weight:600; font-size:14.5px; color:var(--ink); min-width:0; }
+.house-meta{ grid-column:1; font-size:12.5px; color:var(--muted); min-width:0; }
+.house-price{
+  grid-row:1 / span 2; grid-column:2;
+  font-family:"Newsreader", serif; font-weight:600;
+  font-size:18px; color:var(--green-deep); text-align:right; white-space:nowrap;
+}
+.house-qm-badge{
+  display:inline-block; margin-left:6px;
+  font-size:11px; font-weight:600; padding:1px 7px; border-radius:999px;
+  vertical-align:middle;
+}
+.badge-cheap{ background:#e6f4ea; color:#1a7f37; }
+.badge-mid{ background:#efece4; color:#6f6f64; }
+.badge-exp{ background:#fbe9e6; color:#b4452f; }
+
+.sheet-handle{ display:none; }
+
+/* ---------- Mobile bottom sheet ---------- */
+@media (max-width:760px){
+  .app-header{ padding:10px 13px; gap:10px; }
+  .brand-mark{ width:30px; height:30px; }
+  .brand-name{ font-size:16px; }
+  .brand-sub{ display:none; }
+  .count-chip{ font-size:12px; padding:6px 10px; }
+  .hist-link span{ display:none; }
+  .hist-link{ padding:9px; }
+
+  .sidebar{
+    top:auto; left:0; right:0; bottom:0;
+    width:auto; max-height:74vh;
+    border-radius:20px 20px 0 0;
+    border-bottom:none;
+    box-shadow:var(--shadow-lg);
+    transform:translateY(calc(100% - 132px));
+    transition:transform .32s cubic-bezier(.4,.0,.2,1);
+  }
+  .sidebar.open{ transform:translateY(0); }
+  .sheet-handle{
+    display:flex; flex-direction:column; align-items:center; gap:9px;
+    padding:10px 0 4px; cursor:pointer; user-select:none;
+  }
+  .sheet-grip{ width:38px; height:4.5px; border-radius:999px; background:#d6d0c2; }
+  .sheet-cue{ font-size:12.5px; font-weight:600; color:var(--green-deep); display:flex; align-items:center; gap:6px; }
+  .sidebar-head{ padding-top:6px; }
+  .list-scroll{ max-height:calc(74vh - 150px); }
 }
 
-.price-history{
-  margin-top:6px;
+/* ---------- Leaflet overrides ---------- */
+.leaflet-container{ font-family:"Hanken Grotesk", sans-serif; background:var(--bg); }
+.leaflet-control-zoom{ border:none !important; box-shadow:var(--shadow) !important; border-radius:12px !important; overflow:hidden; }
+.leaflet-control-zoom a{
+  width:38px !important; height:38px !important; line-height:38px !important;
+  color:var(--green-deep) !important; font-size:19px !important;
+  background:#fff !important; border:none !important;
 }
-
-.price-history svg{
-  display:block;
+.leaflet-control-zoom a:hover{ background:var(--green-soft) !important; }
+.leaflet-bar a:first-child{ border-bottom:1px solid var(--line) !important; }
+.leaflet-control-attribution{
+  background:rgba(255,255,255,.82) !important;
+  font-size:10.5px !important; color:#8a8a7e !important;
+  padding:3px 8px !important; border-radius:8px 0 0 0 !important;
 }
+.leaflet-control-attribution a{ color:var(--green) !important; }
 
-.price-delta{
-  font-size:12px;
-  margin-top:2px;
+/* Price pill markers */
+.price-pin{ background:none; border:none; }
+.price-pin .pill{
+  position:relative;
+  display:inline-flex; align-items:center;
+  background:var(--green); color:#fff;
+  font-weight:700; font-size:12.5px; letter-spacing:.2px;
+  padding:5px 10px; border-radius:999px;
+  box-shadow:0 4px 12px rgba(27,43,31,.32), 0 0 0 2px #fff;
+  transform:translate(-50%,-50%);
+  white-space:nowrap;
+  transition:transform .14s ease, background .14s ease;
 }
+.price-pin .pill::after{
+  content:""; position:absolute; left:50%; bottom:-5px;
+  width:9px; height:9px; background:var(--green);
+  transform:translateX(-50%) rotate(45deg);
+  box-shadow:2px 2px 3px rgba(27,43,31,.18);
+}
+.price-pin.active .pill,
+.price-pin .pill:hover{ background:var(--green-deep); transform:translate(-50%,-50%) scale(1.08); }
+.price-pin.active .pill::after,
+.price-pin .pill:hover::after{ background:var(--green-deep); }
 
-.price-delta.down{ color:#1a7f37; }   /* gefallen = gut für Käufer */
-.price-delta.up{ color:#b42318; }      /* gestiegen */
-.price-delta.flat{ color:#666; }
+/* Custom popup */
+.leaflet-popup.house-popup .leaflet-popup-content-wrapper{
+  background:var(--card);
+  border-radius:15px;
+  box-shadow:var(--shadow-lg);
+  padding:0; overflow:hidden; border:1px solid var(--line);
+}
+.leaflet-popup.house-popup .leaflet-popup-content{ margin:0; width:248px !important; }
+.leaflet-popup.house-popup .leaflet-popup-tip{ box-shadow:var(--shadow); }
+.leaflet-popup.house-popup a.leaflet-popup-close-button{
+  color:#fff; top:9px; right:10px; font-size:18px; width:22px; height:22px;
+  display:grid; place-items:center; border-radius:50%; background:rgba(0,0,0,.18);
+}
+.pop{ }
+.pop-top{
+  background:linear-gradient(135deg, var(--green), var(--green-deep));
+  color:#fff; padding:14px 16px 13px;
+}
+.pop-addr{ font-family:"Newsreader",serif; font-size:17px; font-weight:600; line-height:1.15; }
+.pop-tag{ display:inline-block; margin-top:6px; font-size:11px; font-weight:600; background:rgba(255,255,255,.2); padding:3px 9px; border-radius:999px; }
+.pop-body{ padding:13px 16px 15px; }
+.pop-price{ font-family:"Newsreader",serif; font-size:26px; font-weight:600; color:var(--green-deep); line-height:1; }
+.pop-price small{ font-family:"Hanken Grotesk",sans-serif; font-size:12.5px; font-weight:600; color:var(--muted); }
+.pop-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:13px; }
+.pop-stat{ background:var(--bg); border-radius:9px; padding:8px 10px; }
+.pop-stat .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+.pop-stat .v{ font-size:14.5px; font-weight:600; margin-top:1px; }
+.pop-cta{
+  display:block; text-align:center; margin-top:13px;
+  text-decoration:none; background:var(--green-soft); color:var(--green-deep);
+  font-weight:600; font-size:13px; padding:9px; border-radius:10px;
+}
+.pop-cta:hover{ background:#dceadf; }
 
+.loading{
+  position:fixed; inset:0; z-index:1500;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:var(--bg); color:var(--green-deep);
+  transition:opacity .4s ease; font-weight:600;
+}
+.loading.hide{ opacity:0; pointer-events:none; }
+.spinner{ width:34px; height:34px; border:3px solid var(--green-soft); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 
@@ -94,273 +272,213 @@ html, body {
 
 <div id="map"></div>
 
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div>Häuser werden geladen …</div>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l8 10.5h-4l5 7h-4.8L26 29H6l5.8-7.5H7l5-7H8z" fill="#fff"/><rect x="14.2" y="25.5" width="3.6" height="4.5" rx=".6" fill="#cfe3d4"/></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">Waldferiendorf Eversum</span>
+      <span class="brand-sub">Ferienhäuser im Grünen · Verkaufskarte</span>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="count-chip"><span class="dot"></span><span id="countNum">–</span>&nbsp;zu verkaufen</span>
+  <a class="hist-link" href="historie.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+    <span>Preis-Historie</span>
+  </a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sheet-handle" id="sheetHandle">
+    <div class="sheet-grip"></div>
+    <div class="sheet-cue"><span id="cueNum">–</span>&nbsp;Häuser ansehen ▲</div>
+  </div>
+  <div class="sidebar-head">
+    <h2 class="sidebar-title">Verfügbare Häuser</h2>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#2f6b4f"></span>zu verkaufen</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#cfcabb"></span>nicht verfügbar</div>
+    </div>
+  </div>
+  <div class="list-scroll" id="listScroll"></div>
+</aside>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
+const map = L.map('map', { zoomControl:false, attributionControl:true })
+  .setView([51.7027, 7.3320], 16);
 
-const map=L.map('map').setView([51.702721,7.332047],6);
+L.control.zoom({ position:'bottomright' }).addTo(map);
 
-L.tileLayer(
- 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
- { attribution:'© OpenStreetMap contributors'}
-).addTo(map);
-
-map.attributionControl.addAttribution(
-'Verkaufsdaten: <a href="https://www.waldferiendorf-eversum.de" target="_blank">waldferiendorf-eversum.de</a>'
-);
-
-let geoLayer;
-let salesFeatures=[];
-let priceHistory={};
-
-
-// Datum kurz: "06/2026"
-function formatMonth(iso){
- const d=new Date(iso);
- return String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
-}
-
-
-// SVG-Sparkline aus den Historien-Punkten eines Hauses
-function buildSparkline(punkte){
- const pts=(punkte||[]).filter(p=>p.preis!=null);
- if(pts.length<2) return "";
-
- const W=220, H=46, pad=4;
- const values=pts.map(p=>p.preis);
- const min=Math.min(...values);
- const max=Math.max(...values);
- const span=(max-min)||1;
-
- const x=i=> pad + (W-2*pad) * (i/(pts.length-1));
- const y=v=> pad + (H-2*pad) * (1-(v-min)/span);
-
- const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
- const last=pts[pts.length-1];
-
- return `
- <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-   <path d="${line}" fill="none" stroke="#1f78b4" stroke-width="2"/>
-   <circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(last.preis).toFixed(1)}" r="3" fill="#1f78b4"/>
- </svg>`;
-}
-
-
-// Text zur Preisänderung seit dem ersten erfassten Punkt
-function priceDeltaHtml(punkte){
- const pts=(punkte||[]).filter(p=>p.preis!=null);
- if(pts.length<2) return "";
-
- const first=pts[0], last=pts[pts.length-1];
- const diff=last.preis-first.preis;
-
- const cls=diff<0?"down":diff>0?"up":"flat";
- const sign=diff>0?"+":diff<0?"−":"±";
- const arrow=diff<0?"▼":diff>0?"▲":"→";
-
- return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
-}
-
-
-// Preisformatierung
-function formatPrice(value){
- if(!value) return "-";
- return new Intl.NumberFormat('de-DE').format(value)+ "\u00A0" + "€";
-}
-
-
-
-// GeoJSON + Preis-Historie laden
-// Historie ist optional: fällt sie weg, funktioniert die Karte trotzdem.
-Promise.all([
- fetch('data/haeuser_final.geojson').then(r=>r.json()),
- fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
-])
-.then(([data,history])=>{
-
-priceHistory=history||{};
-
-geoLayer=L.geoJSON(data,{
-
-style:function(feature){
-
- const status=feature.properties?.status;
-
- const fill=status==="zu_verkaufen"
-   ? "#1f78b4"      // blau
-   : "#cfcfcf";     // grau
-
- const opacity=status==="zu_verkaufen"
-   ? 0.85
-   : 0.4;
-
- return{
-   color:"#444",
-   weight:1,
-   fillColor:fill,
-   fillOpacity:opacity
- };
-
-},
-
-onEachFeature:function(feature,layer){
-
- const p=feature.properties;
-
- const hist=priceHistory[p.id] || priceHistory[p["@id"]];
- const punkte=hist?.punkte;
-
- const histHtml=(punkte && punkte.length>1)
-   ? `<div class="price-history">${buildSparkline(punkte)}${priceDeltaHtml(punkte)}</div>`
-   : "";
-
- const popup=`
-   <b>${p["addr:street"] ?? ""} ${p["addr:housenumber"] ?? ""}</b><br>
-   Status: ${p.status ?? "-"}<br>
-   Preis: ${formatPrice(p.preis)}<br>
-   Pacht: ${p.pacht ?? "-"} € / Jahr<br>
-   Fläche: ${p.flaeche ?? "-"} m²
-   ${histHtml}
- `;
-
- layer.bindPopup(popup);
-
-
- // Hover Highlight
- layer.on("mouseover",function(){
-   layer.setStyle({
-     weight:3,
-     color:"#000"
-   });
- });
-
- layer.on("mouseout",function(){
-   geoLayer.resetStyle(layer);
- });
-
-
- // Verkaufsobjekte sammeln
- if(p.status==="zu_verkaufen"){
-   salesFeatures.push({feature,layer});
- }
-
-}
-
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution:'© OpenStreetMap · © CARTO',
+  subdomains:'abcd', maxZoom:20
 }).addTo(map);
 
+map.attributionControl.addAttribution(
+  'Verkaufsdaten: <a href="https://www.waldferiendorf-eversum.de" target="_blank">waldferiendorf-eversum.de</a>'
+);
 
-map.fitBounds(geoLayer.getBounds());
+let geoLayer, priceHistory = {};
+let salesFeatures = [];   // { feature, layer, marker, qm, index }
 
-createSalesPanel();
-
-});
-
-
-
-
-// Panel (Legende + Verkaufstabelle)
-function createSalesPanel(){
-
-salesFeatures.sort((a,b)=>{
- return (a.feature.properties.preis||0)-(b.feature.properties.preis||0);
-});
-
-
-const control=L.control({position:"bottomleft"});
-
-control.onAdd=function(){
-
-const div=L.DomUtil.create("div","panel");
-
-let html=`
-
-<b>Status</b>
-
-<div class="legend-item">
-<div class="legend-color" style="background:#1f78b4"></div>
-zu verkaufen
-</div>
-
-<div class="legend-item">
-<div class="legend-color" style="background:#cfcfcf"></div>
-nicht zu verkaufen
-</div>
-
-<hr>
-
-<b>Verfügbare Häuser</b>
-
-<table class="sales-table">
-
-<tr>
-<th>Adresse</th>
-<th>Preis</th>
-<th>Fläche</th>
-<th></th>
-</tr>
-`;
-
-
-salesFeatures.forEach((obj,i)=>{
-
-const p=obj.feature.properties;
-
-html+=`
-<tr>
-<td>${p["addr:street"]} ${p["addr:housenumber"]}</td>
-<td>${formatPrice(p.preis)}</td>
-<td>${p.flaeche ?? "-"} m²</td>
-<td><button onclick="zoomToHouse(${i})">Karte</button></td>
-</tr>
-`;
-
-});
-
-
-html+=`</table>`;
-
-html+=`<hr><a href="historie.html">Preis-Historie ansehen →</a>`;
-
-div.innerHTML=html;
-
-L.DomEvent.disableClickPropagation(div);
-
-return div;
-
-};
-
-control.addTo(map);
-
+function formatPrice(v){
+  if(v==null) return "–";
+  return new Intl.NumberFormat('de-DE').format(Math.round(v)) + "\u00A0€";
+}
+function shortPrice(v){
+  if(v==null) return "–";
+  return (v>=1000) ? Math.round(v/1000)+"\u00A0T\u00A0€" : formatPrice(v);
+}
+function median(arr){
+  if(!arr.length) return null;
+  const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+function qmBadge(qm, med){
+  if(qm==null||med==null) return "";
+  const pct=Math.round((qm-med)/med*100);
+  if(pct<=-5) return `<span class="house-qm-badge badge-cheap">günstig</span>`;
+  if(pct>=5)  return `<span class="house-qm-badge badge-exp">gehoben</span>`;
+  return `<span class="house-qm-badge badge-mid">Ø&nbsp;Markt</span>`;
 }
 
+Promise.all([
+  fetch('data/haeuser_final.geojson').then(r=>r.json()),
+  fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+]).then(([data, history])=>{
 
+  priceHistory = history||{};
 
-// Zoom auf Gebäude
-function zoomToHouse(index) {
-    const obj = salesFeatures[index];
-    
-    // Mittelpunkt des Objekts berechnen
-    let center;
-    if (obj.layer.getLatLng) {
-        // Falls es ein Marker (Pin) ist
-        center = obj.layer.getLatLng();
-    } else if (obj.layer.getBounds) {
-        // Falls es ein Polygon, Rechteck etc. ist
-        center = obj.layer.getBounds().getCenter();
+  geoLayer = L.geoJSON(data, {
+    style:f=>{
+      const sale = f.properties?.status==="zu_verkaufen";
+      return sale
+        ? { color:"#1b4332", weight:1.4, fillColor:"#2f6b4f", fillOpacity:.82 }
+        : { color:"#d8d3c5", weight:.8, fillColor:"#cfcabb", fillOpacity:.45 };
+    },
+    onEachFeature:(feature, layer)=>{
+      const p=feature.properties;
+      if(p.status!=="zu_verkaufen") return;
+
+      const qm = p.flaeche ? p.preis/p.flaeche : null;
+      salesFeatures.push({ feature, layer, qm, marker:null, index:-1 });
+
+      layer.on("mouseover", ()=> layer.setStyle({ weight:3, color:"#000", fillOpacity:.92 }));
+      layer.on("mouseout",  ()=> geoLayer.resetStyle(layer));
     }
+  }).addTo(map);
 
-    // Karte fliegt zur Mitte des Objekts und zoomt auf Level 18
-    map.flyTo(center);
+  // €/m² median for badges
+  const medQm = median(salesFeatures.map(s=>s.qm).filter(x=>x!=null));
 
-    // Popup leicht verzögert öffnen, damit es nicht während der Animation 
-    // an der alten Position aufploppt (optional, aber sieht besser aus)
-    setTimeout(() => {
-        obj.layer.openPopup();
-    }, 300); // 400ms passen meist gut zur flyTo-Standarddauer
+  // sort cheapest €/m² first
+  salesFeatures.sort((a,b)=>(a.qm||1e9)-(b.qm||1e9));
+  salesFeatures.forEach((s,i)=> s.index=i);
 
+  // price pill markers + popups
+  salesFeatures.forEach(s=>{
+    const p=s.feature.properties;
+    const center=s.layer.getBounds().getCenter();
+
+    const icon=L.divIcon({
+      className:'price-pin',
+      html:`<div class="pill">${shortPrice(p.preis)}</div>`,
+      iconSize:[0,0]
+    });
+    s.marker=L.marker(center, { icon, riseOnHover:true }).addTo(map);
+
+    const popupHtml = buildPopup(p, s.qm, medQm);
+    s.layer.bindPopup(popupHtml, { className:'house-popup', closeButton:true, maxWidth:280, offset:[0,4] });
+    s.marker.bindPopup(popupHtml, { className:'house-popup', closeButton:true, maxWidth:280, offset:[0,-8] });
+
+    const activate=()=>setActive(s.index);
+    s.marker.on('click', activate);
+    s.layer.on('click', activate);
+  });
+
+  map.fitBounds(geoLayer.getBounds().pad(0.12));
+
+  buildList(medQm);
+  document.getElementById('countNum').textContent = salesFeatures.length;
+  document.getElementById('cueNum').textContent = salesFeatures.length;
+  document.getElementById('loading').classList.add('hide');
+
+}).catch(err=>{
+  console.error(err);
+  document.getElementById('loading').innerHTML =
+    '<div style="max-width:280px;text-align:center">Die Häuserdaten konnten nicht geladen werden.</div>';
+});
+
+function buildPopup(p, qm, medQm){
+  return `
+  <div class="pop">
+    <div class="pop-top">
+      <div class="pop-addr">${(p["addr:street"]||"")} ${(p["addr:housenumber"]||"")}</div>
+      <span class="pop-tag">● Zu verkaufen</span>
+    </div>
+    <div class="pop-body">
+      <div class="pop-price">${formatPrice(p.preis)}</div>
+      <div class="pop-grid">
+        <div class="pop-stat"><div class="k">Fläche</div><div class="v">${p.flaeche??"–"} m²</div></div>
+        <div class="pop-stat"><div class="k">Preis / m²</div><div class="v">${qm!=null?formatPrice(qm):"–"}</div></div>
+        <div class="pop-stat"><div class="k">Pacht / Jahr</div><div class="v">${formatPrice(p.pacht)}</div></div>
+        <div class="pop-stat"><div class="k">Ort</div><div class="v" style="font-size:13px">${p["addr:postcode"]||""} ${p["addr:city"]||""}</div></div>
+      </div>
+      <a class="pop-cta" href="historie.html">Preisverlauf &amp; Analyse →</a>
+    </div>
+  </div>`;
 }
 
-</script>
+function buildList(medQm){
+  const wrap=document.getElementById('listScroll');
+  wrap.innerHTML='';
+  salesFeatures.forEach(s=>{
+    const p=s.feature.properties;
+    const row=document.createElement('div');
+    row.className='house-row';
+    row.dataset.idx=s.index;
+    row.innerHTML=`
+      <div class="house-addr">${(p["addr:street"]||"")} ${(p["addr:housenumber"]||"")}</div>
+      <div class="house-meta">${p.flaeche??"–"} m² · ${s.qm!=null?formatPrice(s.qm):"–"}/m² ${qmBadge(s.qm, medQm)}</div>
+      <div class="house-price">${formatPrice(p.preis)}</div>`;
+    row.addEventListener('click', ()=>{
+      setActive(s.index);
+      if(window.innerWidth<=760) document.getElementById('sidebar').classList.remove('open');
+    });
+    wrap.appendChild(row);
+  });
+}
 
+let activeIdx=-1;
+function setActive(i){
+  const s=salesFeatures.find(x=>x.index===i);
+  if(!s) return;
+  activeIdx=i;
+
+  document.querySelectorAll('.house-row').forEach(r=>
+    r.classList.toggle('active', +r.dataset.idx===i));
+  salesFeatures.forEach(x=>{
+    const el=x.marker?.getElement();
+    if(el) el.classList.toggle('active', x.index===i);
+  });
+
+  const center=s.layer.getBounds().getCenter();
+  map.flyTo(center, Math.max(map.getZoom(), 18), { duration:.6 });
+  setTimeout(()=> s.marker.openPopup(), 380);
+}
+
+// Mobile bottom sheet toggle
+const sidebar=document.getElementById('sidebar');
+document.getElementById('sheetHandle').addEventListener('click', ()=>
+  sidebar.classList.toggle('open'));
+</script>
 </body>
 </html>

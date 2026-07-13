@@ -17063,10 +17063,10 @@
         "addr:postcode": "59399",
         "addr:street": "Rabenplatz",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 52000,
+        "pacht": 1298,
+        "flaeche": 38
       },
       "geometry": {
         "type": "Polygon",
@@ -26948,7 +26948,7 @@
         "addr:street": "Dachsgrund",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 60000,
+        "preis": 49000,
         "pacht": 1841,
         "flaeche": 40
       },

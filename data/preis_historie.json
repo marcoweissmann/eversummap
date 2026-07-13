@@ -78,9 +78,26 @@
         "datum": "2026-06-19",
         "preis": 60000,
         "pacht": 1841
+      },
+      {
+        "datum": "2026-07-13",
+        "preis": 49000,
+        "pacht": 1841
       }
     ],
     "flaeche": 40,
+    "aktiv": true
+  },
+  "way/367295459": {
+    "addr": "Rabenplatz 80",
+    "punkte": [
+      {
+        "datum": "2026-07-13",
+        "preis": 52000,
+        "pacht": 1298
+      }
+    ],
+    "flaeche": 38,
     "aktiv": true
   }
 }

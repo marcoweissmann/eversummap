@@ -38,6 +38,12 @@ def find_latest_pdf():
         d = today - timedelta(days=i)
         base_name = f"eversum-liste-{d.strftime('%d-%m-%Y')}"
 
+        # Für einen Tag können mehrere Versionen existieren (z.B. "-2" als
+        # korrigierte Neufassung). SUFFIXES ist aufsteigend sortiert, daher
+        # überschreiben wir und behalten am Ende die höchste vorhandene
+        # Version = die neueste Korrektur.
+        latest = None
+
         for suffix in SUFFIXES:
             filename = f"{base_name}{suffix}.pdf"
             url = BASE_URL + filename
@@ -45,10 +51,13 @@ def find_latest_pdf():
             try:
                 r = requests.head(url, timeout=10)
                 if r.status_code == 200:
-                    print("PDF gefunden:", url)
-                    return url
+                    latest = url
             except requests.RequestException as e:
                 print(f"Fehler beim Prüfen von {url}: {e}")
+
+        if latest:
+            print("PDF gefunden (neueste Version des Tages):", latest)
+            return latest
 
     raise Exception(f"Keine Verkaufs-PDF in den letzten {SEARCH_DAYS} Tagen gefunden")
 

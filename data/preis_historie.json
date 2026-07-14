@@ -99,5 +99,17 @@
     ],
     "flaeche": 38,
     "aktiv": true
+  },
+  "way/367295444": {
+    "addr": "Rabenplatz 61",
+    "punkte": [
+      {
+        "datum": "2026-07-14",
+        "preis": 65000,
+        "pacht": 1701
+      }
+    ],
+    "flaeche": 50,
+    "aktiv": true
   }
 }

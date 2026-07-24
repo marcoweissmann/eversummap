@@ -6,6 +6,11 @@
         "datum": "2026-06-19",
         "preis": 45000,
         "pacht": 1525
+      },
+      {
+        "datum": "2026-07-24",
+        "preis": 32500,
+        "pacht": 1525
       }
     ],
     "flaeche": 28,
@@ -110,6 +115,18 @@
       }
     ],
     "flaeche": 50,
+    "aktiv": true
+  },
+  "way/367352243": {
+    "addr": "Hasenplatte 233",
+    "punkte": [
+      {
+        "datum": "2026-07-24",
+        "preis": 94000,
+        "pacht": 1671
+      }
+    ],
+    "flaeche": 55,
     "aktiv": true
   }
 }

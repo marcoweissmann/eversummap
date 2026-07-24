@@ -1884,7 +1884,7 @@
         "addr:street": "Zur Birke",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 45000,
+        "preis": 32500,
         "pacht": 1525,
         "flaeche": 28
       },
@@ -21639,10 +21639,10 @@
         "addr:postcode": "59399",
         "addr:street": "Hasenplatte",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 94000,
+        "pacht": 1671,
+        "flaeche": 55
       },
       "geometry": {
         "type": "Polygon",

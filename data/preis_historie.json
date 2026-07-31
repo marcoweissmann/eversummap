@@ -50,7 +50,8 @@
       }
     ],
     "flaeche": 40,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-07-31"
   },
   "way/367295417": {
     "addr": "Kuckuckshöhe 123",
@@ -62,7 +63,8 @@
       }
     ],
     "flaeche": 33,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-07-31"
   },
   "way/367295461": {
     "addr": "Rabenplatz 82",

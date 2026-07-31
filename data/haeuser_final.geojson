@@ -11335,10 +11335,10 @@
         "addr:postcode": "59399",
         "addr:street": "Fuchsloch",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 35000,
-        "pacht": 1558,
-        "flaeche": 40
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -15083,10 +15083,10 @@
         "addr:postcode": "59399",
         "addr:street": "Kuckuckshöhe",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 45000,
-        "pacht": 1389,
-        "flaeche": 33
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",

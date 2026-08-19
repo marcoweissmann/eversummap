@@ -26,7 +26,8 @@
       }
     ],
     "flaeche": 40,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-08-19"
   },
   "way/366828541": {
     "addr": "Euleneck 47",
@@ -125,6 +126,11 @@
       {
         "datum": "2026-07-24",
         "preis": 94000,
+        "pacht": 1671
+      },
+      {
+        "datum": "2026-08-19",
+        "preis": 89500,
         "pacht": 1671
       }
     ],

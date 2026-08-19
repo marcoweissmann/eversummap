@@ -2799,10 +2799,10 @@
         "addr:postcode": "59399",
         "addr:street": "Euleneck",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 65000,
-        "pacht": 1363,
-        "flaeche": 40
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -21640,7 +21640,7 @@
         "addr:street": "Hasenplatte",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 94000,
+        "preis": 89500,
         "pacht": 1671,
         "flaeche": 55
       },

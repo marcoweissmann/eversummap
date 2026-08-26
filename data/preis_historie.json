@@ -118,7 +118,8 @@
       }
     ],
     "flaeche": 50,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-08-26"
   },
   "way/367352243": {
     "addr": "Hasenplatte 233",

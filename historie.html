@@ -344,7 +344,7 @@ function initOverview(geo, history, aktiv, sold){
   if(!el || typeof L==='undefined') return;
   const map=L.map(el,{ zoomControl:false, scrollWheelZoom:false, attributionControl:true }).setView([51.7027,7.3320],15);
   L.control.zoom({ position:'bottomright' }).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{ subdomains:'abcd', maxZoom:20, attribution:'© OpenStreetMap · © CARTO' }).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{ subdomains:'abcd', maxZoom:20, attribution:'© OpenStreetMap' }).addTo(map);
 
   const byId={};
   geo.features.forEach(f=>{ const id=f.properties.id||f.properties['@id']; if(id) byId[id]=f; });

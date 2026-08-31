@@ -317,8 +317,8 @@ const map = L.map('map', { zoomControl:false, attributionControl:true })
 
 L.control.zoom({ position:'bottomright' }).addTo(map);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution:'© OpenStreetMap · © CARTO',
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OpenStreetMap',
   subdomains:'abcd', maxZoom:20
 }).addTo(map);
 

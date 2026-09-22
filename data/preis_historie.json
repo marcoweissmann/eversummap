@@ -16,6 +16,11 @@
         "datum": "2026-08-28",
         "preis": 28500,
         "pacht": 1525
+      },
+      {
+        "datum": "2026-09-22",
+        "preis": 28500,
+        "pacht": 1636
       }
     ],
     "flaeche": 28,
@@ -41,6 +46,11 @@
         "datum": "2026-06-19",
         "preis": 60000,
         "pacht": 1432
+      },
+      {
+        "datum": "2026-09-22",
+        "preis": 60000,
+        "pacht": 1537
       }
     ],
     "flaeche": 33,
@@ -79,6 +89,11 @@
         "datum": "2026-06-19",
         "preis": 32000,
         "pacht": 1362
+      },
+      {
+        "datum": "2026-09-22",
+        "preis": 32000,
+        "pacht": 1461
       }
     ],
     "flaeche": 30,
@@ -96,6 +111,11 @@
         "datum": "2026-07-13",
         "preis": 49000,
         "pacht": 1841
+      },
+      {
+        "datum": "2026-09-22",
+        "preis": 49000,
+        "pacht": 1976
       }
     ],
     "flaeche": 40,
@@ -108,6 +128,11 @@
         "datum": "2026-07-13",
         "preis": 52000,
         "pacht": 1298
+      },
+      {
+        "datum": "2026-09-22",
+        "preis": 52000,
+        "pacht": 1393
       }
     ],
     "flaeche": 38,
@@ -141,6 +166,43 @@
       }
     ],
     "flaeche": 55,
+    "aktiv": false,
+    "verkauft_am": "2026-09-22"
+  },
+  "way/366828417": {
+    "addr": "Zur Tanne 36",
+    "punkte": [
+      {
+        "datum": "2026-09-22",
+        "preis": 75000,
+        "pacht": 1808
+      }
+    ],
+    "flaeche": 55,
+    "aktiv": true
+  },
+  "way/367134038": {
+    "addr": "Zur Eiche 36",
+    "punkte": [
+      {
+        "datum": "2026-09-22",
+        "preis": 65000,
+        "pacht": 1729
+      }
+    ],
+    "flaeche": 40,
+    "aktiv": true
+  },
+  "way/367352233": {
+    "addr": "Hasenplatte 222",
+    "punkte": [
+      {
+        "datum": "2026-09-22",
+        "preis": 40000,
+        "pacht": 1721
+      }
+    ],
+    "flaeche": 40,
     "aktiv": true
   }
 }

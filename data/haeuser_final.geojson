@@ -1885,7 +1885,7 @@
         "building": "yes",
         "status": "zu_verkaufen",
         "preis": 28500,
-        "pacht": 1525,
+        "pacht": 1636,
         "flaeche": 28
       },
       "geometry": {
@@ -4923,10 +4923,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Tanne",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 75000,
+        "pacht": 1808,
+        "flaeche": 55
       },
       "geometry": {
         "type": "Polygon",
@@ -6321,7 +6321,7 @@
         "building": "yes",
         "status": "zu_verkaufen",
         "preis": 60000,
-        "pacht": 1432,
+        "pacht": 1537,
         "flaeche": 33
       },
       "geometry": {
@@ -10171,10 +10171,10 @@
         "addr:postcode": "59399",
         "addr:street": "Zur Eiche",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 65000,
+        "pacht": 1729,
+        "flaeche": 40
       },
       "geometry": {
         "type": "Polygon",
@@ -17065,7 +17065,7 @@
         "building": "yes",
         "status": "zu_verkaufen",
         "preis": 52000,
-        "pacht": 1298,
+        "pacht": 1393,
         "flaeche": 38
       },
       "geometry": {
@@ -17169,7 +17169,7 @@
         "building": "yes",
         "status": "zu_verkaufen",
         "preis": 32000,
-        "pacht": 1362,
+        "pacht": 1461,
         "flaeche": 30
       },
       "geometry": {
@@ -21191,10 +21191,10 @@
         "addr:postcode": "59399",
         "addr:street": "Hasenplatte",
         "building": "yes",
-        "status": null,
-        "preis": null,
-        "pacht": null,
-        "flaeche": null
+        "status": "zu_verkaufen",
+        "preis": 40000,
+        "pacht": 1721,
+        "flaeche": 40
       },
       "geometry": {
         "type": "Polygon",
@@ -21639,10 +21639,10 @@
         "addr:postcode": "59399",
         "addr:street": "Hasenplatte",
         "building": "yes",
-        "status": "zu_verkaufen",
-        "preis": 89500,
-        "pacht": 1671,
-        "flaeche": 55
+        "status": null,
+        "preis": null,
+        "pacht": null,
+        "flaeche": null
       },
       "geometry": {
         "type": "Polygon",
@@ -26949,7 +26949,7 @@
         "building": "yes",
         "status": "zu_verkaufen",
         "preis": 49000,
-        "pacht": 1841,
+        "pacht": 1976,
         "flaeche": 40
       },
       "geometry": {

@@ -358,6 +358,15 @@ function shortPrice(v){
   if(v==null) return "–";
   return (v>=1000) ? Math.round(v/1000)+"\u00A0T\u00A0€" : formatPrice(v);
 }
+// Angebotsdauer aus der Preis-Historie. Häuser, die schon am ersten Tag der
+// Aufzeichnung gelistet waren, standen evtl. länger im Angebot ("mind.").
+let trackStart = null;
+function angebotsdauer(id){
+  const pts=priceHistory[id]?.punkte;
+  if(!pts || !pts.length) return "–";
+  const days=Math.round((new Date(new Date().toISOString().slice(0,10)) - new Date(pts[0].datum))/86400000);
+  return (pts[0].datum===trackStart ? "mind. " : "") + days + " Tage";
+}
 function median(arr){
   if(!arr.length) return null;
   const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2);
@@ -399,6 +408,7 @@ Promise.all([
 ]).then(([data, history])=>{
 
   priceHistory = history||{};
+  trackStart = Object.values(priceHistory).flatMap(h=>(h.punkte||[]).map(x=>x.datum)).sort()[0] || null;
 
   geoLayer = L.geoJSON(data, {
     style:f=>{
@@ -478,7 +488,7 @@ function buildPopup(p, qm, medQm){
         <div class="pop-stat"><div class="k">Fläche</div><div class="v">${p.flaeche??"–"} m²</div></div>
         <div class="pop-stat"><div class="k">Preis / m²</div><div class="v">${qm!=null?formatPrice(qm):"–"}</div></div>
         <div class="pop-stat"><div class="k">Pacht / Jahr</div><div class="v">${formatPrice(p.pacht)}</div></div>
-        <div class="pop-stat"><div class="k">Ort</div><div class="v" style="font-size:13px">${p["addr:postcode"]||""} ${p["addr:city"]||""}</div></div>
+        <div class="pop-stat"><div class="k">Im Angebot</div><div class="v">${angebotsdauer(p.id||p["@id"])}</div></div>
       </div>
       <a class="pop-cta" href="historie.html">Preisverlauf &amp; Analyse →</a>
     </div>

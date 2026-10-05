@@ -167,6 +167,27 @@ body{
 .ovpop-b .r{ display:flex; justify-content:space-between; gap:14px; padding:3px 0; color:var(--muted); }
 .ovpop-b .r b{ font-weight:600; color:var(--ink); }
 .badge.long{ background:#fbf0dc; color:#8a5a14; }
+
+/* zuklappbarer Verlauf in den Hauskarten */
+.cards{ align-items:start; }
+.hist-details{ margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+.hist-details summary{ cursor:pointer; font-size:12.5px; font-weight:600; color:var(--green-deep); list-style:none; display:flex; align-items:center; gap:6px; }
+.hist-details summary::-webkit-details-marker{ display:none; }
+.hist-details summary::before{ content:"▸"; font-size:11px; transition:transform .15s; }
+.hist-details[open] summary::before{ transform:rotate(90deg); }
+.hist-details .htable{ margin-top:6px; }
+
+/* Kennzahl Preisspanne: Kurzform auf schmalen Bildschirmen */
+.kpi .v-short{ display:none; }
+@media (max-width:560px){
+  .kpi .v-long{ display:none; }
+  .kpi .v-short{ display:inline; white-space:nowrap; font-size:21px; }
+  .kpi .value{ font-size:24px; }
+  /* Überschriften: Zusatz unter die Überschrift statt daneben */
+  .section{ flex-wrap:wrap; row-gap:2px; }
+  .section::after{ display:none; }
+  .section .count{ flex-basis:100%; }
+}
 .badge + .badge{ margin-left:6px; }
 .listed{ font-size:12.5px; color:var(--muted); margin-top:6px; }
 
@@ -260,30 +281,40 @@ function median(arr){
 }
 function mean(arr){ return arr.length ? arr.reduce((s,x)=>s+x,0)/arr.length : null; }
 
+// Hat sich der Angebotspreis jemals geändert? (Pachtänderungen zählen nicht)
+function priceChanged(pts){ return new Set(pts.map(p=>p.preis)).size>1; }
+
+// Kleine Preislinie je Haus: zeitgetreu, als Stufe, bis heute
 function buildSparkline(punkte){
   const pts=(punkte||[]).filter(p=>p.preis!=null);
-  if(pts.length<2) return "";
-  const W=300,H=64,pad=6;
-  const v=pts.map(p=>p.preis), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
-  const x=i=>pad+(W-2*pad)*(i/(pts.length-1));
-  const y=val=>pad+(H-2*pad)*(1-(val-min)/span);
-  const line=pts.map((p,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ");
-  const area=`M${x(0).toFixed(1)},${H-pad} `+pts.map((p,i)=>`L${x(i).toFixed(1)},${y(p.preis).toFixed(1)}`).join(" ")+` L${x(pts.length-1).toFixed(1)},${H-pad} Z`;
-  const dots=pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.preis).toFixed(1)}" r="3" fill="#2f6b4f" stroke="#fff" stroke-width="1.5"/>`).join("");
+  if(!priceChanged(pts)) return "";
+  const W=300,H=56,pad=5;
+  const t0=new Date(pts[0].datum).getTime();
+  const tEnd=Math.max(new Date(todayIso()).getTime(), new Date(pts[pts.length-1].datum).getTime());
+  const v=pts.map(p=>p.preis), min=Math.min(...v), max=Math.max(...v);
+  const X=t=>(t-t0)/((tEnd-t0)||1)*W;
+  const Y=val=>pad+(H-2*pad)*(1-(val-min)/(max-min));
+  let line="";
+  pts.forEach((p,i)=>{
+    const x=X(new Date(p.datum).getTime()).toFixed(1), y=Y(p.preis).toFixed(1);
+    line+= i===0 ? `M${x},${y}` : `H${x}V${y}`;
+  });
+  line+=`H${W}`;
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" height="${H}">
-    <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".18"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
-    <path d="${area}" fill="url(#spg)"/>
-    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+    <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".16"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line}V${H}H0Z" fill="url(#spg)"/>
+    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
 }
 
 function priceDeltaHtml(punkte){
   const pts=(punkte||[]).filter(p=>p.preis!=null);
-  if(pts.length<2) return "";
+  if(!pts.length) return "";
   const first=pts[0], last=pts[pts.length-1], diff=last.preis-first.preis;
-  const cls=diff<0?"down":diff>0?"up":"flat";
-  const sign=diff>0?"+":diff<0?"−":"±";
-  const arrow=diff<0?"▼":diff>0?"▲":"→";
-  return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
+  if(!priceChanged(pts)) return `<div class="price-delta flat">→ Preis unverändert seit ${formatMonth(first.datum)}</div>`;
+  const pct=Math.round(diff/first.preis*100);
+  const cls=diff<0?"down":"up";
+  const sign=diff<0?"−":"+";
+  return `<div class="price-delta ${cls}">${diff<0?"▼":"▲"} ${sign}${formatPrice(Math.abs(diff))} (${sign}${Math.abs(pct)}&nbsp;%) seit ${formatMonth(first.datum)}</div>`;
 }
 
 // ---------- Zeitreihen-Diagramme (Marktentwicklung) ----------
@@ -430,13 +461,15 @@ function reconstructMarket(history, flaecheById){
 function badge(qm, medianQm){
   if(qm==null||medianQm==null) return "";
   const pct=Math.round((qm-medianQm)/medianQm*100);
-  if(pct<=-5) return `<span class="badge cheap">${pct}% ggü. Median</span>`;
-  if(pct>=5)  return `<span class="badge exp">+${pct}% ggü. Median</span>`;
+  if(pct<=-5) return `<span class="badge cheap">−${Math.abs(pct)}&nbsp;% ggü. Median</span>`;
+  if(pct>=5)  return `<span class="badge exp">+${pct}&nbsp;% ggü. Median</span>`;
   return `<span class="badge mid">≈ Median</span>`;
 }
 
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
 function formatDate(iso){ if(!iso) return "–"; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
+// 28500 -> "28,5" (für "28,5 – 75 T€")
+function kurzT(v){ return (v/1000).toLocaleString('de-DE',{ maximumFractionDigits:1 }); }
 function todayIso(){ return new Date().toISOString().slice(0,10); }
 
 // Ab so vielen Tagen gilt ein Angebot als "lange im Angebot"
@@ -445,9 +478,9 @@ const LONG_LISTED_DAYS = 60;
 // standen evtl. schon länger im Angebot -> Dauern sind dann Mindestwerte.
 let trackStart = null;
 
-function dauerText(von, bis){
+function dauerText(von, bis, kurz=false){
   if(!von || !bis) return "–";
-  return (von===trackStart ? "mind. " : "") + daysBetween(von, bis) + " Tage";
+  return (von===trackStart ? (kurz ? "≥&nbsp;" : "mind. ") : "") + daysBetween(von, bis) + "&nbsp;Tage";
 }
 function longBadge(punkte){
   if(!punkte.length) return "";
@@ -718,7 +751,7 @@ Promise.all([
       ${kpi("Häuser zu verkaufen", aktiv.length)}
       ${kpi("Median-Preis", formatPrice(median(preise)), "Ø "+formatPrice(mean(preise)))}
       ${kpi("Median €/m²", formatPrice(medianQm), "Ø "+formatPrice(mean(qms)))}
-      ${kpi("Preisspanne", formatPrice(Math.min(...preise))+" – "+formatPrice(Math.max(...preise)))}
+      ${kpi("Preisspanne", `<span class="v-long">${formatPrice(Math.min(...preise))} – ${formatPrice(Math.max(...preise))}</span><span class="v-short">${kurzT(Math.min(...preise))}&thinsp;–&thinsp;${kurzT(Math.max(...preise))}&nbsp;T€</span>`)}
       ${kpi("Median-Pacht / Jahr", formatPrice(median(pachten)))}
       ${kpi("Median-Fläche", (median(flaechen)||"–")+" m²")}
     </div>`;
@@ -764,27 +797,34 @@ Promise.all([
     aktiv.forEach(a=>{
       const p=a.p;
       const punkte=a.punkte.filter(x=>x.preis!=null);
-      const verlauf = punkte.length>1
+      // Preislinie nur bei echten Preisänderungen; sonst ein kurzer Hinweis
+      // (außer bei ganz neuen Angeboten, da steht schon "seit …").
+      const neu = punkte.length===1 && punkte[0].datum!==trackStart && daysBetween(punkte[0].datum, todayIso())<30;
+      const verlauf = priceChanged(punkte)
         ? `<div class="price-history">${buildSparkline(punkte)}</div>${priceDeltaHtml(punkte)}`
-        : `<p class="hint">Nur ein Datenpunkt – der Verlauf erscheint nach der ersten Preisänderung.</p>`;
+        : (neu ? "" : priceDeltaHtml(punkte));
+      // Verlaufstabelle nur, wenn es mehr als einen Eintrag gibt – zugeklappt
       let rows="";
       [...punkte].reverse().forEach(pt=>{
-        rows+=`<tr><td>${formatMonth(pt.datum)}</td><td>${formatPrice(pt.preis)}</td><td>${pt.pacht!=null?formatPrice(pt.pacht):"–"}</td></tr>`;
+        rows+=`<tr><td>${formatDate(pt.datum)}</td><td>${formatPrice(pt.preis)}</td><td>${pt.pacht!=null?formatPrice(pt.pacht):"–"}</td></tr>`;
       });
+      const tabelle = punkte.length>1
+        ? `<details class="hist-details"><summary>Verlauf · ${punkte.length} Einträge</summary><table class="htable"><tr><th>Stand</th><th>Preis</th><th>Pacht</th></tr>${rows}</table></details>`
+        : "";
       html+=`<div class="card">
         <div class="card-head">
           <h2>${p["addr:street"]||""} ${p["addr:housenumber"]||""}</h2>
           <div class="big-price">${formatPrice(p.preis)}</div>
         </div>
         <div style="margin-top:8px">${badge(a.qm, medianQm)}${longBadge(punkte)}</div>
-        <div class="listed">Im Angebot: ${punkte.length?`${dauerText(punkte[0].datum, todayIso())}${punkte[0].datum===trackStart?" (schon vor Beginn der Aufzeichnung gelistet)":` (seit ${formatDate(punkte[0].datum)})`}`:"–"}</div>
+        <div class="listed">Im Angebot: ${punkte.length?`${dauerText(punkte[0].datum, todayIso())}${punkte[0].datum===trackStart?"":` · seit ${formatDate(punkte[0].datum)}`}`:"–"}</div>
         <div class="statline">
           <div class="statbox"><div class="k">€ / m²</div><div class="v">${formatPrice(a.qm)}</div></div>
           <div class="statbox"><div class="k">Fläche</div><div class="v">${p.flaeche||"–"} m²</div></div>
           <div class="statbox"><div class="k">Pacht/Jahr</div><div class="v">${formatPrice(p.pacht)}</div></div>
         </div>
         ${verlauf}
-        <table class="htable"><tr><th>Stand</th><th>Preis</th><th>Pacht</th></tr>${rows}</table>
+        ${tabelle}
       </div>`;
     });
     html+=`</div>`;
@@ -807,13 +847,13 @@ Promise.all([
         <div class="listed">letzter Angebotspreis</div>
         <div class="statline">
           <div class="statbox"><div class="k">Vom Markt</div><div class="v" style="font-size:13px">${formatDate(h.verkauft_am)}</div></div>
-          <div class="statbox"><div class="k">Im Angebot</div><div class="v">${dauerText(gelistetSeit, h.verkauft_am)}</div></div>
+          <div class="statbox"><div class="k">Im Angebot</div><div class="v">${dauerText(gelistetSeit, h.verkauft_am, true)}</div></div>
           <div class="statbox"><div class="k">Preisänderung</div><div class="v">${pct==null?"–":pct===0?"keine":(pct>0?"+":"−")+Math.abs(pct)+"&nbsp;%"}</div></div>
         </div>
       </div>`;
     });
     html+=`</div>`;
-    html+=`<p class="note">Der tatsächliche Verkaufspreis ist nicht bekannt – angegeben ist der letzte Preis aus der Verkaufsliste. „mind.“ heißt: Das Haus war schon vor Beginn der Aufzeichnung (${formatDate(trackStart)}) im Angebot, die echte Dauer ist also länger.</p>`;
+    html+=`<p class="note">Der tatsächliche Verkaufspreis ist nicht bekannt – angegeben ist der letzte Preis aus der Verkaufsliste. „mind.“ bzw. „≥“ heißt: Das Haus war schon vor Beginn der Aufzeichnung (${formatDate(trackStart)}) im Angebot, die echte Dauer ist also länger.</p>`;
   }
 
   root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';

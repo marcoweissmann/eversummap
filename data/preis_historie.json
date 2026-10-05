@@ -179,7 +179,8 @@
       }
     ],
     "flaeche": 55,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-10-05"
   },
   "way/367134038": {
     "addr": "Zur Eiche 36",

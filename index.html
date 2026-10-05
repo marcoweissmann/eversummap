@@ -207,7 +207,10 @@ html,body{
   font-weight:700; font-size:12.5px; letter-spacing:.2px;
   padding:5px 10px; border-radius:999px;
   box-shadow:0 4px 12px rgba(27,43,31,.32), 0 0 0 2px #fff;
-  transform:translate(-50%,-50%);
+  /* Spitze sitzt auf dem Ankerpunkt (Oberkante des Grundrisses),
+     die Pille schwebt darüber und verdeckt das Haus nicht. */
+  transform:translate(-50%, calc(-100% - 7px));
+  transform-origin:50% calc(100% + 7px);
   white-space:nowrap;
   transition:transform .14s ease, background .14s ease;
 }
@@ -218,7 +221,7 @@ html,body{
   box-shadow:2px 2px 3px rgba(27,43,31,.18);
 }
 .price-pin.active .pill,
-.price-pin .pill:hover{ background:var(--green-deep); transform:translate(-50%,-50%) scale(1.08); }
+.price-pin .pill:hover{ background:var(--green-deep); transform:translate(-50%, calc(-100% - 7px)) scale(1.08); }
 .price-pin.active .pill::after,
 .price-pin .pill:hover::after{ background:var(--green-deep); }
 
@@ -386,18 +389,20 @@ Promise.all([
   // price pill markers + popups
   salesFeatures.forEach(s=>{
     const p=s.feature.properties;
-    const center=s.layer.getBounds().getCenter();
+    const bounds=s.layer.getBounds();
+    // Anker an der Oberkante des Grundrisses (horizontal mittig)
+    const anchor=L.latLng(bounds.getNorth(), bounds.getCenter().lng);
 
     const icon=L.divIcon({
       className:'price-pin',
       html:`<div class="pill">${shortPrice(p.preis)}</div>`,
       iconSize:[0,0]
     });
-    s.marker=L.marker(center, { icon, riseOnHover:true }).addTo(map);
+    s.marker=L.marker(anchor, { icon, riseOnHover:true }).addTo(map);
 
     const popupHtml = buildPopup(p, s.qm, medQm);
     s.layer.bindPopup(popupHtml, { className:'house-popup', closeButton:true, maxWidth:280, offset:[0,4] });
-    s.marker.bindPopup(popupHtml, { className:'house-popup', closeButton:true, maxWidth:280, offset:[0,-8] });
+    s.marker.bindPopup(popupHtml, { className:'house-popup', closeButton:true, maxWidth:280, offset:[0,-38] });
 
     const activate=()=>setActive(s.index);
     s.marker.on('click', activate);

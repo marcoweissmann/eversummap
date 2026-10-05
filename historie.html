@@ -161,6 +161,26 @@ body{
 .ovpop-b{ padding:10px 14px 12px; font-size:13px; }
 .ovpop-b .r{ display:flex; justify-content:space-between; gap:14px; padding:3px 0; color:var(--muted); }
 .ovpop-b .r b{ font-weight:600; color:var(--ink); }
+.badge.long{ background:#fbf0dc; color:#8a5a14; }
+.badge + .badge{ margin-left:6px; }
+.listed{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+
+/* ---------- Änderungs-Feed ---------- */
+.feed{ background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:4px 18px; }
+.feed-day{ display:grid; grid-template-columns:96px 1fr; gap:14px; padding:12px 0; border-bottom:1px solid #f1ede3; }
+.feed-day:last-of-type{ border-bottom:none; }
+.feed-day.more{ display:none; }
+.feed.open .feed-day.more{ display:grid; }
+.feed-date{ font-size:12.5px; font-weight:600; color:var(--muted); padding-top:2px; }
+.feed-item{ display:flex; gap:10px; align-items:flex-start; font-size:13.5px; line-height:1.45; padding:3px 0; }
+.feed-item b{ font-weight:600; }
+.fi-ico{ flex:none; width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:10.5px; font-weight:700; color:#fff; }
+.fi-new{ background:var(--green); } .fi-down{ background:var(--down); } .fi-up{ background:var(--up); }
+.fi-pacht{ background:var(--wood); } .fi-sold{ background:#8a8a7e; } .fi-start{ background:#c9c4b5; }
+.feed-toggle{ display:block; width:100%; margin:4px 0 12px; padding:9px; border:none; border-radius:10px; background:var(--green-soft); color:var(--green-deep); font:600 13px "Hanken Grotesk",sans-serif; cursor:pointer; }
+.feed-toggle:hover{ background:#dceadf; }
+@media (max-width:560px){ .feed-day{ grid-template-columns:1fr; gap:4px; } }
+
 /* ---------- Scatter ---------- */
 .scatter-legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:var(--muted); }
 .scatter-legend .d{ width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
@@ -315,6 +335,80 @@ function reconstructMarket(history, flaecheById){
   return {priceSeries, qmSeries, countSeries};
 }
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function formatDate(iso){ if(!iso) return "–"; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
+function todayIso(){ return new Date().toISOString().slice(0,10); }
+
+// Ab so vielen Tagen gilt ein Angebot als "lange im Angebot"
+const LONG_LISTED_DAYS = 60;
+// Erster Tag der Aufzeichnung. Häuser, die an diesem Tag schon gelistet waren,
+// standen evtl. schon länger im Angebot -> Dauern sind dann Mindestwerte.
+let trackStart = null;
+
+function dauerText(von, bis){
+  if(!von || !bis) return "–";
+  return (von===trackStart ? "mind. " : "") + daysBetween(von, bis) + " Tage";
+}
+function longBadge(punkte){
+  if(!punkte.length) return "";
+  return daysBetween(punkte[0].datum, todayIso())>=LONG_LISTED_DAYS
+    ? `<span class="badge long">lange im Angebot</span>` : "";
+}
+
+// Änderungs-Feed: alle Ereignisse aus der Historie, neueste zuerst
+function buildEvents(history){
+  const ev=[];
+  let startCount=0;
+  Object.values(history).forEach(h=>{
+    const pts=(h.punkte||[]);
+    pts.forEach((pt,i)=>{
+      if(i===0){
+        if(pt.datum===trackStart) startCount++;
+        else ev.push({ d:pt.datum, type:"new", addr:h.addr, text:`neu im Angebot für ${formatPrice(pt.preis)}` });
+        return;
+      }
+      const prev=pts[i-1];
+      if(pt.preis!=null && prev.preis!=null && pt.preis!==prev.preis){
+        const pct=Math.round((pt.preis-prev.preis)/prev.preis*100);
+        const down=pt.preis<prev.preis;
+        ev.push({ d:pt.datum, type:down?"down":"up", addr:h.addr,
+          text:`Preis ${down?"gesenkt":"erhöht"}: ${formatPrice(prev.preis)} → ${formatPrice(pt.preis)} (${pct>0?"+":"−"}${Math.abs(pct)}&nbsp;%)` });
+      }
+      if(pt.pacht!=null && prev.pacht!=null && pt.pacht!==prev.pacht){
+        ev.push({ d:pt.datum, type:"pacht", addr:h.addr,
+          text:`Pacht geändert: ${formatPrice(prev.pacht)} → ${formatPrice(pt.pacht)} pro Jahr` });
+      }
+    });
+    if(h.aktiv===false && h.verkauft_am){
+      const last=[...pts].reverse().find(p=>p.preis!=null);
+      ev.push({ d:h.verkauft_am, type:"sold", addr:h.addr,
+        text:`vom Markt genommen (zuletzt angeboten für ${formatPrice(last?.preis)})` });
+    }
+  });
+  if(trackStart) ev.push({ d:trackStart, type:"start", addr:null, text:`Beginn der Aufzeichnung mit ${startCount} Angeboten` });
+  return ev.sort((a,b)=>b.d.localeCompare(a.d));
+}
+
+function buildFeed(events, visibleDays=4){
+  if(!events.length) return "";
+  const icon={ new:"+", down:"▼", up:"▲", pacht:"€", sold:"✓", start:"•" };
+  const days=[];
+  events.forEach(e=>{
+    const last=days[days.length-1];
+    if(last && last.d===e.d) last.items.push(e); else days.push({ d:e.d, items:[e] });
+  });
+  const rows=days.map((day,i)=>`
+    <div class="feed-day${i>=visibleDays?" more":""}">
+      <div class="feed-date">${formatDate(day.d)}</div>
+      <div>${day.items.map(e=>`
+        <div class="feed-item"><span class="fi-ico fi-${e.type}">${icon[e.type]}</span>
+          <div>${e.addr?`<b>${e.addr}</b> · `:""}${e.text}</div></div>`).join("")}
+      </div>
+    </div>`).join("");
+  const toggle = days.length>visibleDays
+    ? `<button class="feed-toggle" onclick="this.closest('.feed').classList.toggle('open');this.textContent=this.closest('.feed').classList.contains('open')?'Weniger anzeigen':'Alle ${days.length} Tage anzeigen'">Alle ${days.length} Tage anzeigen</button>`
+    : "";
+  return `<div class="feed">${rows}${toggle}</div>`;
+}
 
 function shortP(v){ if(v==null) return "–"; return v>=1000 ? Math.round(v/1000)+"\u00A0T\u00A0€" : formatPrice(v); }
 
@@ -330,16 +424,16 @@ function ovPopupActive(a){
     <div class="r"><span>€ / m²</span><b>${formatPrice(a.qm)}</b></div>
     <div class="r"><span>Fläche</span><b>${p.flaeche||"–"} m²</b></div>
     <div class="r"><span>Pacht / Jahr</span><b>${formatPrice(p.pacht)}</b></div>
+    <div class="r"><span>Im Angebot</span><b>${a.punkte.length?dauerText(a.punkte[0].datum, todayIso()):"–"}</b></div>
   </div></div>`;
 }
 function ovPopupSold(s, sp){
   const h=s.h, punkte=(h.punkte||[]).filter(x=>x.preis!=null);
   const listed=punkte.length?punkte[0].datum:null;
-  const dauer=(listed&&h.verkauft_am)?daysBetween(listed,h.verkauft_am):null;
   return `<div class="ovpop sold"><div class="ovpop-h">${h.addr||"Unbekannt"}</div><div class="ovpop-b">
-    <div class="r"><span>Verkaufspreis</span><b>${formatPrice(sp)}</b></div>
-    <div class="r"><span>Vom Markt</span><b>${h.verkauft_am||"–"}</b></div>
-    <div class="r"><span>Vermarktung</span><b>${dauer!=null?dauer+" Tage":"–"}</b></div>
+    <div class="r"><span>Letzter Angebotspreis</span><b>${formatPrice(sp)}</b></div>
+    <div class="r"><span>Vom Markt</span><b>${formatDate(h.verkauft_am)}</b></div>
+    <div class="r"><span>Im Angebot</span><b>${dauerText(listed, h.verkauft_am)}</b></div>
   </div></div>`;
 }
 function initOverview(geo, history, aktiv, sold){
@@ -466,13 +560,20 @@ Promise.all([
 
   const sold=Object.entries(history).filter(([id,h])=>h.aktiv===false).map(([id,h])=>({id,h}));
 
+  const allDates=Object.values(history).flatMap(h=>(h.punkte||[]).map(p=>p.datum)).sort();
+  trackStart=allDates[0]||null;
+
   let html="";
+  const events=buildEvents(history);
+  if(events.length){
+    html+=`<div class="section">Was ist neu? <span class="count">alle Änderungen, neueste zuerst</span></div>${buildFeed(events)}`;
+  }
   html+=`<div class="section">Lage – Angebote &amp; Verkäufe</div>
     <div class="ovmap-card">
       <div class="ovmap" id="ovMap"></div>
       <div class="ovmap-legend">
         <span class="li"><span class="sw" style="background:#2f6b4f"></span>Aktuelles Angebot · Angebotspreis</span>
-        <span class="li"><span class="sw" style="background:#a9743f"></span>Verkauft · Verkaufspreis</span>
+        <span class="li"><span class="sw" style="background:#a9743f"></span>Vom Markt · letzter Angebotspreis</span>
         <span class="li" id="ovEmpty" style="color:#9b9a8c;font-style:italic"></span>
       </div>
     </div>`;
@@ -548,7 +649,8 @@ Promise.all([
           <h2>${p["addr:street"]||""} ${p["addr:housenumber"]||""}</h2>
           <div class="big-price">${formatPrice(p.preis)}</div>
         </div>
-        <div style="margin-top:8px">${badge(a.qm, medianQm)}</div>
+        <div style="margin-top:8px">${badge(a.qm, medianQm)}${longBadge(punkte)}</div>
+        <div class="listed">Im Angebot: ${punkte.length?`${dauerText(punkte[0].datum, todayIso())}${punkte[0].datum===trackStart?" (schon vor Beginn der Aufzeichnung gelistet)":` (seit ${formatDate(punkte[0].datum)})`}`:"–"}</div>
         <div class="statline">
           <div class="statbox"><div class="k">€ / m²</div><div class="v">${formatPrice(a.qm)}</div></div>
           <div class="statbox"><div class="k">Fläche</div><div class="v">${p.flaeche||"–"} m²</div></div>
@@ -570,18 +672,21 @@ Promise.all([
     sold2.forEach(({h})=>{
       const punkte=(h.punkte||[]).filter(x=>x.preis!=null);
       const gelistetSeit=punkte.length?punkte[0].datum:null;
+      const ersterPreis=punkte.length?punkte[0].preis:null;
       const letzterPreis=punkte.length?punkte[punkte.length-1].preis:null;
-      const dauer=(gelistetSeit && h.verkauft_am)?daysBetween(gelistetSeit, h.verkauft_am):null;
+      const pct=(ersterPreis&&letzterPreis)?Math.round((letzterPreis-ersterPreis)/ersterPreis*100):null;
       html+=`<div class="card sold">
         <div class="card-head"><h2>${h.addr||"Unbekannt"}</h2><div class="big-price">${formatPrice(letzterPreis)}</div></div>
+        <div class="listed">letzter Angebotspreis</div>
         <div class="statline">
-          <div class="statbox"><div class="k">Vom Markt</div><div class="v" style="font-size:13px">${h.verkauft_am||"–"}</div></div>
-          <div class="statbox"><div class="k">Vermarktung</div><div class="v">${dauer!=null?dauer+" Tage":"–"}</div></div>
-          <div class="statbox"><div class="k">Letzter Preis</div><div class="v">${formatPrice(letzterPreis)}</div></div>
+          <div class="statbox"><div class="k">Vom Markt</div><div class="v" style="font-size:13px">${formatDate(h.verkauft_am)}</div></div>
+          <div class="statbox"><div class="k">Im Angebot</div><div class="v">${dauerText(gelistetSeit, h.verkauft_am)}</div></div>
+          <div class="statbox"><div class="k">Preisänderung</div><div class="v">${pct==null?"–":pct===0?"keine":(pct>0?"+":"−")+Math.abs(pct)+"&nbsp;%"}</div></div>
         </div>
       </div>`;
     });
     html+=`</div>`;
+    html+=`<p class="note">Der tatsächliche Verkaufspreis ist nicht bekannt – angegeben ist der letzte Preis aus der Verkaufsliste. „mind.“ heißt: Das Haus war schon vor Beginn der Aufzeichnung (${formatDate(trackStart)}) im Angebot, die echte Dauer ist also länger.</p>`;
   }
 
   root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';

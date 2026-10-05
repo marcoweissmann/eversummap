@@ -403,8 +403,8 @@ function declutterSales(){
 }
 
 Promise.all([
-  fetch('data/haeuser_final.geojson').then(r=>r.json()),
-  fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+  fetch('data/haeuser_final.geojson',{cache:'no-cache'}).then(r=>r.json()),
+  fetch('data/preis_historie.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}))
 ]).then(([data, history])=>{
 
   priceHistory = history||{};

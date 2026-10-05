@@ -614,14 +614,39 @@ function buildScatter(offers){
   const dots=pts.map(p=>{
     const resid=p.y-(slope*p.x+intercept);
     const col=resid<=0?'#2f6b4f':'#a9743f';
-    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6.5" fill="${col}" stroke="#fff" stroke-width="2"/>`+
-      `<text x="${X(p.x).toFixed(1)}" y="${(Y(p.y)-12).toFixed(1)}" font-size="10" fill="#6f6f64" text-anchor="middle" font-family="Hanken Grotesk">${p.addr}</text>`;
+    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6.5" fill="${col}" stroke="#fff" stroke-width="2"/>`;
+  }).join('');
+
+  // Labels ohne Überlappung: Jedes Label probiert acht Positionen um seinen
+  // Punkt und nimmt die erste, die kein anderes Label und keinen Punkt
+  // verdeckt und im Diagramm bleibt (sonst die mit den wenigsten Konflikten).
+  const fs=10.5, charW=fs*0.56;
+  const gap=10;  // Mindestabstand zwischen Labels
+  const hit=(a,b)=>a.x<b.x+b.w+gap && a.x+a.w+gap>b.x && a.y<b.y+b.h+gap && a.y+a.h+gap>b.y;
+  const dotBoxes=pts.map(p=>({ x:X(p.x)-9, y:Y(p.y)-9, w:18, h:18 }));
+  const placed=[];
+  const labels=pts.map((p,i)=>{
+    const cx=X(p.x), cy=Y(p.y), w=p.addr.length*charW;
+    const cands=[
+      [cx, cy-12, "middle"], [cx, cy+13+fs, "middle"],
+      [cx+11, cy+fs*0.35, "start"], [cx-11, cy+fs*0.35, "end"],
+      [cx+7, cy-9, "start"], [cx-7, cy-9, "end"],
+      [cx+7, cy+9+fs, "start"], [cx-7, cy+9+fs, "end"]
+    ].map(([tx,ty,anchor])=>{
+      const box={ x:anchor==="middle"?tx-w/2:anchor==="end"?tx-w:tx, y:ty-fs, w, h:fs+3 };
+      const out=box.x<mL+2 || box.x+box.w>W-mR || box.y<2 || box.y+box.h>H-mB;
+      const score=placed.filter(b=>hit(box,b)).length + dotBoxes.filter((b,j)=>j!==i && hit(box,b)).length + (out?10:0);
+      return { tx, ty, anchor, box, score };
+    });
+    const best=cands.find(c=>c.score===0) || cands.reduce((a,b)=>b.score<a.score?b:a);
+    placed.push(best.box);
+    return `<text x="${best.tx.toFixed(1)}" y="${best.ty.toFixed(1)}" font-size="${fs}" fill="#6f6f64" text-anchor="${best.anchor}" font-family="Hanken Grotesk" stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${p.addr}</text>`;
   }).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
     ${grid}
     <line x1="${mL}" y1="${mT}" x2="${mL}" y2="${H-mB}" stroke="#e0dccf"/>
     <line x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}" stroke="#e0dccf"/>
-    ${trend}${dots}${ya}${xa}
+    ${trend}${dots}${labels}${ya}${xa}
     <text x="${W-mR}" y="${H-6}" font-size="10.5" fill="#9b9a8c" text-anchor="end" font-family="Hanken Grotesk">Fläche →</text>
   </svg>`;
 }

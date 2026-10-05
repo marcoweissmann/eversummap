@@ -174,6 +174,8 @@ html,body{
     transition:transform .32s cubic-bezier(.4,.0,.2,1);
   }
   .sidebar.open{ transform:translateY(0); }
+  /* Zähler steht auf dem Handy schon in der aufklappbaren Liste */
+  .count-chip{ display:none; }
   .sheet-handle{
     display:flex; flex-direction:column; align-items:center; gap:9px;
     padding:10px 0 4px; cursor:pointer; user-select:none;
@@ -333,7 +335,7 @@ html,body{
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map('map', { zoomControl:false, attributionControl:true })
+const map = L.map('map', { zoomControl:false, attributionControl:true, zoomSnap:0.25 })
   .setView([51.7027, 7.3320], 16);
 
 L.control.zoom({ position:'bottomright' }).addTo(map);
@@ -459,7 +461,7 @@ Promise.all([
     s.layer.on('click', activate);
   });
 
-  map.fitBounds(geoLayer.getBounds().pad(0.12));
+  fitToSales();
   map.on('zoomend', declutterSales);
   window.addEventListener('resize', declutterSales);
   setTimeout(declutterSales, 50);
@@ -474,6 +476,20 @@ Promise.all([
   document.getElementById('loading').innerHTML =
     '<div style="max-width:280px;text-align:center">Die Häuserdaten konnten nicht geladen werden.</div>';
 });
+
+// Startausschnitt: alle Angebote, mit Platz für Header, Pins und
+// Seitenleiste (Desktop) bzw. die aufklappbare Liste unten (Handy)
+function fitToSales(){
+  if(!salesFeatures.length){ map.fitBounds(geoLayer.getBounds().pad(0.12)); return; }
+  const b=L.latLngBounds([]);
+  salesFeatures.forEach(s=>b.extend(s.layer.getBounds()));
+  const head=document.querySelector('.app-header').offsetHeight;
+  const mobile=window.innerWidth<=760;
+  const opts = mobile
+    ? { paddingTopLeft:[28, head+52], paddingBottomRight:[28, 132+28] }
+    : { paddingTopLeft:[document.getElementById('sidebar').offsetWidth+18+48, head+56], paddingBottomRight:[64, 48] };
+  map.fitBounds(b, { ...opts, maxZoom:17 });
+}
 
 function buildPopup(p, qm, medQm){
   return `

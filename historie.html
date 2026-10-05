@@ -147,7 +147,7 @@ body{
 .leaflet-control-zoom a:hover{ background:var(--green-soft) !important; }
 .leaflet-control-attribution{ background:rgba(255,255,255,.82) !important; font-size:10px !important; }
 .leaflet-control-attribution a{ color:var(--green) !important; }
-.ov-pin .pp{ position:relative; display:inline-flex; align-items:center; background:var(--green); color:#fff; font-weight:700; font-size:12px; padding:4px 9px; border-radius:999px; box-shadow:0 4px 10px rgba(27,43,31,.3),0 0 0 2px #fff; transform:translate(-50%,-50%); white-space:nowrap; }
+.ov-pin .pp{ position:relative; display:inline-flex; align-items:center; background:var(--green); color:#fff; font-weight:700; font-size:12px; padding:4px 9px; border-radius:999px; box-shadow:0 4px 10px rgba(27,43,31,.3),0 0 0 2px #fff; transform:translate(-50%, calc(-100% - 6px)); white-space:nowrap; } /* Spitze auf Oberkante des Grundrisses, Pille darüber */
 .ov-pin .pp::after{ content:""; position:absolute; left:50%; bottom:-4px; width:8px; height:8px; background:var(--green); transform:translateX(-50%) rotate(45deg); }
 .ov-pin.sold .pp{ background:var(--wood); box-shadow:0 4px 10px rgba(122,82,48,.32),0 0 0 2px #fff; }
 .ov-pin.sold .pp::after{ background:var(--wood); }
@@ -317,7 +317,7 @@ function shortP(v){ if(v==null) return "–"; return v>=1000 ? Math.round(v/1000
 
 function addPin(map, latlng, label, kind, popupHtml){
   const m=L.marker(latlng,{ icon:L.divIcon({ className:'ov-pin'+(kind==='sold'?' sold':''), html:`<div class="pp">${label}</div>`, iconSize:[0,0] }), riseOnHover:true }).addTo(map);
-  m.bindPopup(popupHtml,{ className:'ov-popup', maxWidth:240, offset:[0,-6] });
+  m.bindPopup(popupHtml,{ className:'ov-popup', maxWidth:240, offset:[0,-34] });
   return m;
 }
 function ovPopupActive(a){
@@ -353,17 +353,17 @@ function initOverview(geo, history, aktiv, sold){
   aktiv.forEach(a=>{
     const f=byId[a.id]; if(!f) return;
     const layer=L.geoJSON(f,{ style:{ color:'#1b4332', weight:1.2, fillColor:'#2f6b4f', fillOpacity:.7 } }).addTo(map);
-    const c=layer.getBounds().getCenter();
-    addPin(map,c,shortP(a.p.preis),'active',ovPopupActive(a));
+    const b=layer.getBounds(), c=b.getCenter();
+    addPin(map,L.latLng(b.getNorth(),c.lng),shortP(a.p.preis),'active',ovPopupActive(a));
     pts.push(c);
   });
   sold.forEach(s=>{
     const f=byId[s.id]; if(!f) return;
     const layer=L.geoJSON(f,{ style:{ color:'#6f4a2c', weight:1.2, fillColor:'#a9743f', fillOpacity:.55 } }).addTo(map);
-    const c=layer.getBounds().getCenter();
+    const b=layer.getBounds(), c=b.getCenter();
     const punkte=(s.h.punkte||[]).filter(x=>x.preis!=null);
     const sp=punkte.length?punkte[punkte.length-1].preis:null;
-    addPin(map,c,shortP(sp),'sold',ovPopupSold(s,sp));
+    addPin(map,L.latLng(b.getNorth(),c.lng),shortP(sp),'sold',ovPopupSold(s,sp));
     pts.push(c);
   });
 

@@ -115,6 +115,9 @@ html,body{
 .legend{ display:flex; flex-wrap:wrap; gap:8px 16px; }
 .legend-item{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted); }
 .legend-swatch{ width:13px; height:13px; border-radius:4px; border:1px solid rgba(0,0,0,.12); }
+.legend-swatch.round{ border-radius:50%; }
+.legend-pins{ margin-top:8px; }
+.legend-label{ font-size:12px; color:var(--muted); width:100%; }
 
 .list-scroll{ overflow-y:auto; overflow-x:hidden; padding:8px; -webkit-overflow-scrolling:touch; }
 .list-scroll::-webkit-scrollbar{ width:8px; }
@@ -199,11 +202,15 @@ html,body{
 .leaflet-control-attribution a{ color:var(--green) !important; }
 
 /* Price pill markers */
-.price-pin{ background:none; border:none; }
+.price-pin{ background:none; border:none; --pin:var(--green); }
+/* Farbe nach €/m² im Vergleich zum Median (wie die Badges in der Liste) */
+.price-pin.cheap{ --pin:#2f6b4f; }
+.price-pin.mid{ --pin:#7a7262; }
+.price-pin.exp{ --pin:#b4452f; }
 .price-pin .pill{
   position:relative;
   display:inline-flex; align-items:center;
-  background:var(--green); color:#fff;
+  background:var(--pin); color:#fff;
   font-weight:700; font-size:12.5px; letter-spacing:.2px;
   padding:5px 10px; border-radius:999px;
   box-shadow:0 4px 12px rgba(27,43,31,.32), 0 0 0 2px #fff;
@@ -212,18 +219,23 @@ html,body{
   transform:translate(-50%, calc(-100% - 7px));
   transform-origin:50% calc(100% + 7px);
   white-space:nowrap;
-  transition:transform .14s ease, background .14s ease;
+  transition:transform .14s ease, filter .14s ease;
 }
 .price-pin .pill::after{
   content:""; position:absolute; left:50%; bottom:-5px;
-  width:9px; height:9px; background:var(--green);
+  width:9px; height:9px; background:var(--pin);
   transform:translateX(-50%) rotate(45deg);
   box-shadow:2px 2px 3px rgba(27,43,31,.18);
 }
 .price-pin.active .pill,
-.price-pin .pill:hover{ background:var(--green-deep); transform:translate(-50%, calc(-100% - 7px)) scale(1.08); }
-.price-pin.active .pill::after,
-.price-pin .pill:hover::after{ background:var(--green-deep); }
+.price-pin .pill:hover{ filter:brightness(.82); transform:translate(-50%, calc(-100% - 7px)) scale(1.08); }
+/* Kompakt: Pins, deren Label sich mit einem anderen überschneiden würde,
+   werden zum Punkt. Beim Hover erscheint der Preis wieder. */
+.price-pin.compact:not(:hover) .pill{
+  width:14px; height:14px; padding:0; font-size:0;
+  transform:translate(-50%,-50%);
+}
+.price-pin.compact:not(:hover) .pill::after{ display:none; }
 
 /* Custom popup */
 .leaflet-popup.house-popup .leaflet-popup-content-wrapper{
@@ -283,7 +295,7 @@ html,body{
 <header class="app-header">
   <div class="brand">
     <div class="brand-mark">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l8 10.5h-4l5 7h-4.8L26 29H6l5.8-7.5H7l5-7H8z" fill="#fff"/><rect x="14.2" y="25.5" width="3.6" height="4.5" rx=".6" fill="#cfe3d4"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C10.5 3 6.5 7.2 6.5 12.6 6.5 19.6 16 29 16 29s9.5-9.4 9.5-16.4C25.5 7.2 21.5 3 16 3z" fill="#fff"/><path d="M16 7.6 21.4 12.4V18H10.6v-5.6z" fill="#2f6b4f"/><rect x="14.8" y="14.4" width="2.4" height="3.6" rx=".4" fill="#fff"/></svg>
     </div>
     <div class="brand-text">
       <span class="brand-name">Waldferiendorf Eversum</span>
@@ -308,6 +320,12 @@ html,body{
     <div class="legend">
       <div class="legend-item"><span class="legend-swatch" style="background:#2f6b4f"></span>zu verkaufen</div>
       <div class="legend-item"><span class="legend-swatch" style="background:#cfcabb"></span>nicht verfügbar</div>
+    </div>
+    <div class="legend legend-pins">
+      <span class="legend-label">Preis-Pins nach €/m²:</span>
+      <div class="legend-item"><span class="legend-swatch round" style="background:#2f6b4f"></span>günstig</div>
+      <div class="legend-item"><span class="legend-swatch round" style="background:#7a7262"></span>Ø Markt</div>
+      <div class="legend-item"><span class="legend-swatch round" style="background:#b4452f"></span>gehoben</div>
     </div>
   </div>
   <div class="list-scroll" id="listScroll"></div>
@@ -345,12 +363,34 @@ function median(arr){
   const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2);
   return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
 }
+// €/m² im Vergleich zum Median: "cheap" | "mid" | "exp"
+function qmClass(qm, med){
+  if(qm==null||med==null) return "mid";
+  const pct=Math.round((qm-med)/med*100);
+  return pct<=-5 ? "cheap" : pct>=5 ? "exp" : "mid";
+}
 function qmBadge(qm, med){
   if(qm==null||med==null) return "";
-  const pct=Math.round((qm-med)/med*100);
-  if(pct<=-5) return `<span class="house-qm-badge badge-cheap">günstig</span>`;
-  if(pct>=5)  return `<span class="house-qm-badge badge-exp">gehoben</span>`;
-  return `<span class="house-qm-badge badge-mid">Ø&nbsp;Markt</span>`;
+  const c=qmClass(qm, med);
+  const label={ cheap:"günstig", mid:"Ø&nbsp;Markt", exp:"gehoben" }[c];
+  return `<span class="house-qm-badge badge-${c}">${label}</span>`;
+}
+
+// Überlappende Preis-Labels entzerren: in Prioritätsreihenfolge platzieren,
+// Pins, die mit einem bereits platzierten kollidieren, werden zum Punkt.
+function declutterPins(markers){
+  const els=markers.map(m=>m.getElement()).filter(Boolean);
+  els.forEach(el=>el.classList.remove('compact'));
+  const placed=[];
+  els.forEach(el=>{
+    const r=el.querySelector('.pill').getBoundingClientRect();
+    const hit=placed.some(q=> r.left<q.right+3 && r.right>q.left-3 && r.top<q.bottom+3 && r.bottom>q.top-3);
+    if(hit) el.classList.add('compact'); else placed.push(r);
+  });
+}
+function declutterSales(){
+  const order=[...salesFeatures].sort((a,b)=>(b.index===activeIdx)-(a.index===activeIdx) || a.index-b.index);
+  declutterPins(order.map(s=>s.marker).filter(Boolean));
 }
 
 Promise.all([
@@ -394,7 +434,7 @@ Promise.all([
     const anchor=L.latLng(bounds.getNorth(), bounds.getCenter().lng);
 
     const icon=L.divIcon({
-      className:'price-pin',
+      className:'price-pin '+qmClass(s.qm, medQm),
       html:`<div class="pill">${shortPrice(p.preis)}</div>`,
       iconSize:[0,0]
     });
@@ -410,6 +450,9 @@ Promise.all([
   });
 
   map.fitBounds(geoLayer.getBounds().pad(0.12));
+  map.on('zoomend', declutterSales);
+  window.addEventListener('resize', declutterSales);
+  setTimeout(declutterSales, 50);
 
   buildList(medQm);
   document.getElementById('countNum').textContent = salesFeatures.length;
@@ -474,6 +517,7 @@ function setActive(i){
     const el=x.marker?.getElement();
     if(el) el.classList.toggle('active', x.index===i);
   });
+  declutterSales();
 
   const center=s.layer.getBounds().getCenter();
   map.flyTo(center, Math.max(map.getZoom(), 18), { duration:.6 });

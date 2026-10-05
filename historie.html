@@ -82,7 +82,8 @@ body{
 .section .count{ font-family:"Hanken Grotesk",sans-serif; font-size:13px; font-weight:600; color:var(--muted); }
 
 /* ---------- KPI ---------- */
-.kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; }
+.kpis{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; }
+@media (max-width:720px){ .kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
 .kpi{
   background:var(--card); border:1px solid var(--line); border-radius:16px;
   padding:16px 18px; box-shadow:var(--shadow); position:relative; overflow:hidden;
@@ -137,7 +138,7 @@ body{
 .empty{ color:var(--muted); padding:40px 20px; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:16px; }
 /* ---------- Overview map ---------- */
 .ovmap-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:var(--shadow); }
-.ovmap{ height:400px; width:100%; border-radius:12px; overflow:hidden; background:var(--bg); }
+.ovmap{ height:400px; width:100%; border-radius:12px; overflow:hidden; background:var(--bg); isolation:isolate; } /* eigene Ebene: Karte bleibt unter dem fixierten Header */
 .ovmap-legend{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:12px; padding:2px 4px 0; }
 .ovmap-legend .li{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted); }
 .ovmap-legend .sw{ width:13px; height:13px; border-radius:4px; border:1px solid rgba(0,0,0,.12); }
@@ -151,6 +152,8 @@ body{
 .ov-pin .pp::after{ content:""; position:absolute; left:50%; bottom:-4px; width:8px; height:8px; background:var(--green); transform:translateX(-50%) rotate(45deg); }
 .ov-pin.sold .pp{ background:var(--wood); box-shadow:0 4px 10px rgba(122,82,48,.32),0 0 0 2px #fff; }
 .ov-pin.sold .pp::after{ background:var(--wood); }
+.ov-pin.compact:not(:hover) .pp{ width:13px; height:13px; padding:0; font-size:0; transform:translate(-50%,-50%); }
+.ov-pin.compact:not(:hover) .pp::after{ display:none; }
 .leaflet-popup.ov-popup .leaflet-popup-content-wrapper{ border-radius:13px; box-shadow:0 14px 36px rgba(27,43,31,.2); border:1px solid var(--line); padding:0; overflow:hidden; }
 .leaflet-popup.ov-popup .leaflet-popup-content{ margin:0; width:212px !important; }
 .ovpop-h{ padding:11px 14px; font-family:"Newsreader",serif; font-weight:600; font-size:15px; color:#fff; background:linear-gradient(135deg,var(--green),var(--green-deep)); line-height:1.1; }
@@ -194,7 +197,7 @@ input[type=range]{ accent-color:var(--green); flex:1; min-width:170px; height:5p
 <header class="topbar">
   <div class="brand">
     <div class="brand-mark">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l8 10.5h-4l5 7h-4.8L26 29H6l5.8-7.5H7l5-7H8z" fill="#fff"/><rect x="14.2" y="25.5" width="3.6" height="4.5" rx=".6" fill="#cfe3d4"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C10.5 3 6.5 7.2 6.5 12.6 6.5 19.6 16 29 16 29s9.5-9.4 9.5-16.4C25.5 7.2 21.5 3 16 3z" fill="#fff"/><path d="M16 7.6 21.4 12.4V18H10.6v-5.6z" fill="#2f6b4f"/><rect x="14.8" y="14.4" width="2.4" height="3.6" rx=".4" fill="#fff"/></svg>
     </div>
     <div class="brand-text">
       <span class="brand-name">Waldferiendorf Eversum</span>
@@ -348,13 +351,13 @@ function initOverview(geo, history, aktiv, sold){
 
   const byId={};
   geo.features.forEach(f=>{ const id=f.properties.id||f.properties['@id']; if(id) byId[id]=f; });
-  const pts=[];
+  const pts=[], markers=[];
 
   aktiv.forEach(a=>{
     const f=byId[a.id]; if(!f) return;
     const layer=L.geoJSON(f,{ style:{ color:'#1b4332', weight:1.2, fillColor:'#2f6b4f', fillOpacity:.7 } }).addTo(map);
     const b=layer.getBounds(), c=b.getCenter();
-    addPin(map,L.latLng(b.getNorth(),c.lng),shortP(a.p.preis),'active',ovPopupActive(a));
+    markers.push(addPin(map,L.latLng(b.getNorth(),c.lng),shortP(a.p.preis),'active',ovPopupActive(a)));
     pts.push(c);
   });
   sold.forEach(s=>{
@@ -363,11 +366,24 @@ function initOverview(geo, history, aktiv, sold){
     const b=layer.getBounds(), c=b.getCenter();
     const punkte=(s.h.punkte||[]).filter(x=>x.preis!=null);
     const sp=punkte.length?punkte[punkte.length-1].preis:null;
-    addPin(map,L.latLng(b.getNorth(),c.lng),shortP(sp),'sold',ovPopupSold(s,sp));
+    markers.push(addPin(map,L.latLng(b.getNorth(),c.lng),shortP(sp),'sold',ovPopupSold(s,sp)));
     pts.push(c);
   });
 
   if(pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.4));
+
+  // Überlappende Labels entzerren (aktuelle Angebote haben Vorrang)
+  const declutter=()=>{
+    const placed=[];
+    markers.map(m=>m.getElement()).filter(Boolean).forEach(el=>{
+      el.classList.remove('compact');
+      const r=el.querySelector('.pp').getBoundingClientRect();
+      const hit=placed.some(q=> r.left<q.right+3 && r.right>q.left-3 && r.top<q.bottom+3 && r.bottom>q.top-3);
+      if(hit) el.classList.add('compact'); else placed.push(r);
+    });
+  };
+  map.on('zoomend', declutter);
+  setTimeout(declutter, 300);
   setTimeout(()=>map.invalidateSize(),250);
 }
 

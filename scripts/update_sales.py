@@ -20,6 +20,22 @@ SEARCH_DAYS = 90
 # Mögliche Suffixe (leer = kein Suffix, dann -2, -3, -4 ...)
 SUFFIXES = ["", "-2", "-3", "-4", "-5"]
 
+# Plausibilitätsprüfung: Warnung, wenn die neueste PDF älter ist als ...
+MAX_PDF_AGE_DAYS = 30
+
+# Gesammelte Warnungen. Sie stoppen den Lauf nicht (Daten werden trotzdem
+# committet), lassen aber den Workflow am Ende rot werden.
+WARNINGS = []
+
+
+def warn(msg):
+    print(f"::warning::{msg}")
+    WARNINGS.append(msg)
+
+
+class PlausiError(Exception):
+    """Schwerer Fehler: Es werden keine Daten geschrieben."""
+
 
 def normalize(text):
     if text is None:
@@ -57,7 +73,7 @@ def find_latest_pdf():
 
         if latest:
             print("PDF gefunden (neueste Version des Tages):", latest)
-            return latest
+            return latest, d
 
     raise Exception(f"Keine Verkaufs-PDF in den letzten {SEARCH_DAYS} Tagen gefunden")
 
@@ -114,6 +130,17 @@ def parse_sales():
 
     print("Verkaufsobjekte erkannt:", len(sales))
 
+    # Jede Angebotszeile enthält "€ <Preis> VB € <Pacht>". Gibt es mehr solcher
+    # Zeilen als erkannte Objekte, passt die Adresse einer Zeile nicht zum
+    # Muster (z.B. Hausnummer "5a" oder neue Schreibweise).
+    kandidaten = re.findall(r'€\s*[\d\.]+\s*VB?\s*€\s*[\d\.]+', text)
+    if len(kandidaten) > len(sales):
+        warn(f"PDF enthält {len(kandidaten)} Angebotszeilen, erkannt wurden nur {len(sales)}. "
+             "Vermutlich passt eine Adresse nicht zum Erkennungsmuster.")
+
+    if not sales:
+        raise PlausiError("Keine Verkaufsobjekte in der PDF erkannt – Format geändert? Es werden keine Daten geschrieben.")
+
     return sales
 
 
@@ -157,6 +184,15 @@ def merge_sales(sales):
             p.setdefault("status", "nicht_verkauf")
 
     print("Gematchte Häuser:", matched)
+
+    geo_keys = {
+        (normalize(f["properties"].get("addr:street")), normalize(f["properties"].get("addr:housenumber")))
+        for f in geo["features"]
+    }
+    for key, s in sales_index.items():
+        if key not in geo_keys:
+            warn(f'"{s["addr:street"]} {s["addr:housenumber"]}" steht in der PDF, '
+                 "wurde aber keinem Gebäude in haeuser.geojson zugeordnet.")
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(geo, f, indent=2, ensure_ascii=False)
@@ -216,12 +252,19 @@ def update_history(geo):
 
     # Häuser, die in der Historie stehen, aber nicht mehr in der aktuellen
     # Liste auftauchen -> vermutlich verkauft / vom Markt genommen.
+    vorher_aktiv = sum(1 for e in history.values() if e.get("aktiv", True))
     vom_markt = 0
     for haus_id, entry in history.items():
         if haus_id not in aktuelle_ids and entry.get("aktiv", True):
             entry["aktiv"] = False
             entry["verkauft_am"] = today
             vom_markt += 1
+
+    # Verschwindet mehr als die Hälfte der Angebote auf einmal, ist eher die
+    # Erkennung kaputt als der Markt leergekauft. Dann nichts speichern.
+    if vom_markt >= 3 and vom_markt > vorher_aktiv / 2:
+        raise PlausiError(f"{vom_markt} von {vorher_aktiv} Angeboten wären auf einmal verschwunden – "
+                          "das ist unplausibel. Es werden keine Daten geschrieben.")
 
     print("Historie aktualisiert, neue Punkte:", changed, "| vom Markt:", vom_markt)
 
@@ -235,7 +278,25 @@ def update_history(geo):
 # MAIN
 # ----------------------------------------
 
-url = find_latest_pdf()
+def report_warnings():
+    # Anzahl der Warnungen an den Workflow übergeben, Details in die
+    # Zusammenfassung des Laufs schreiben (beides nur in GitHub Actions).
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+            f.write(f"warnungen={len(WARNINGS)}\n")
+    if WARNINGS and os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+            f.write("## Plausibilitätsprüfung\n\n")
+            f.writelines(f"- {w}\n" for w in WARNINGS)
+    print("Warnungen:", len(WARNINGS))
+
+
+url, pdf_datum = find_latest_pdf()
+
+alter = (datetime.today() - pdf_datum).days
+if alter > MAX_PDF_AGE_DAYS:
+    warn(f"Die neueste gefundene PDF ist {alter} Tage alt ({url}). "
+         "Wurde das Namensschema der Datei geändert?")
 
 download_pdf(url)
 
@@ -244,3 +305,5 @@ sales = parse_sales()
 geo = merge_sales(sales)
 
 update_history(geo)
+
+report_warnings()

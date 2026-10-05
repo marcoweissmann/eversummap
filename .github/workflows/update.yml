@@ -24,7 +24,9 @@ jobs:
 
     - run: pip install pdfplumber requests
 
-    - run: python scripts/update_sales.py
+    - name: Update sales data
+      id: update
+      run: python scripts/update_sales.py
 
     - name: Commit updated GeoJSON
       run: |
@@ -33,3 +35,12 @@ jobs:
         git add data/haeuser_final.geojson data/preis_historie.json
         git commit -m "update sales data" || echo "no changes"
         git push
+
+    # Läuft nach dem Commit: Warnungen aus der Plausibilitätsprüfung machen den
+    # Lauf rot (GitHub verschickt dann eine Benachrichtigung). Details stehen
+    # in der Zusammenfassung des Laufs.
+    - name: Plausibilitätsprüfung
+      if: steps.update.outputs.warnungen != '0'
+      run: |
+        echo "::error::Plausibilitätsprüfung mit Warnungen – Details in der Zusammenfassung dieses Laufs."
+        exit 1

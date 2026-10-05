@@ -95,7 +95,12 @@ body{
 .note{ color:var(--muted); font-size:12.5px; font-style:italic; margin:12px 2px 0; }
 
 /* ---------- Charts ---------- */
-.charts{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; }
+.charts{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+@media (max-width:720px){ .charts{ grid-template-columns:minmax(0,1fr); } }
+.lc{ position:relative; touch-action:pan-y; }
+.lc-tip{ position:absolute; pointer-events:none; opacity:0; transition:opacity .1s; background:var(--ink); color:#fff; border-radius:8px; padding:5px 9px; font-size:12px; line-height:1.3; white-space:nowrap; display:flex; flex-direction:column; }
+.lc-tip span{ color:#c9c8bd; font-size:11px; }
+.lc-tip b{ font-weight:600; }
 .chart-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px; box-shadow:var(--shadow); }
 .chart-card h3{ font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 10px; font-weight:600; }
 
@@ -281,27 +286,145 @@ function priceDeltaHtml(punkte){
   return `<div class="price-delta ${cls}">${arrow} ${sign}${formatPrice(Math.abs(diff))} seit ${formatMonth(first.datum)}</div>`;
 }
 
-function buildLineChart(series, fmt){
-  if(series.length<2){
-    return '<p class="hint">Mindestens zwei Stichtage nötig – füllt sich, sobald sich Daten über die Zeit ansammeln.</p>';
+// ---------- Zeitreihen-Diagramme (Marktentwicklung) ----------
+// Werte ändern sich sprunghaft an einem Tag und bleiben bis zur nächsten
+// Änderung gleich -> Stufenlinie auf einer zeitgetreuen Achse bis heute.
+const MONATE=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+const lineCharts={};   // key -> { series, fmt }
+
+// "Schöne" Achsenwerte (Schritte 1-2-5) um min..max
+function niceTicks(min, max, count){
+  if(min===max){ const d=Math.abs(min)*0.1||1; min-=d; max+=d; }
+  const raw=(max-min)/count, mag=Math.pow(10, Math.floor(Math.log10(raw)));
+  const step=[1,2,5,10].map(m=>m*mag).find(s=>s>=raw);
+  const lo=Math.floor(min/step)*step, hi=Math.ceil(max/step)*step;
+  const ticks=[];
+  for(let v=lo; v<=hi+step/2; v+=step) ticks.push(Math.round(v*1e6)/1e6);
+  return ticks;
+}
+
+function lineChartSlot(key, series, fmt){
+  lineCharts[key]={ series, fmt };
+  return `<div class="lc" data-key="${key}"></div>`;
+}
+
+function drawLineChart(el){
+  const cfg=lineCharts[el.dataset.key];
+  const s=cfg?.series||[];
+  if(!s.length){ el.innerHTML='<p class="hint">Noch keine Daten.</p>'; el._geo=null; return; }
+
+  const W=Math.max(240, el.clientWidth), H=170, mL=64, mR=14, mT=10, mB=26;
+  const day=86400000;
+  const t0=new Date(s[0].datum).getTime();
+  const tEnd=Math.max(new Date(todayIso()).getTime(), new Date(s[s.length-1].datum).getTime());
+  const span=(tEnd-t0)||day;
+  const X=t=>mL+(t-t0)/span*(W-mL-mR);
+  const ticks=niceTicks(Math.min(...s.map(p=>p.wert)), Math.max(...s.map(p=>p.wert)), 3);
+  const lo=ticks[0], hi=ticks[ticks.length-1];
+  const Y=v=>mT+(1-(v-lo)/(hi-lo))*(H-mT-mB);
+  const r1=v=>v.toFixed(1);
+
+  // Stufenlinie bis heute
+  let line="";
+  s.forEach((p,i)=>{
+    const x=r1(X(new Date(p.datum).getTime())), y=r1(Y(p.wert));
+    line+= i===0 ? `M${x},${y}` : `H${x}V${y}`;
+  });
+  line+=`H${r1(X(tEnd))}`;
+  const area=`${line}V${r1(Y(lo))}H${r1(X(t0))}Z`;
+
+  const txt=(x,y,t,anchor="start")=>`<text x="${r1(x)}" y="${r1(y)}" font-size="11" fill="#8a897d" font-family="Hanken Grotesk" text-anchor="${anchor}">${t}</text>`;
+
+  // y-Achse: dezente Gitterlinien + Werte im linken Rand
+  let grid="";
+  ticks.forEach(v=>{
+    grid+=`<line x1="${mL}" x2="${W-mR}" y1="${r1(Y(v))}" y2="${r1(Y(v))}" stroke="${v===lo?"#e0dccf":"#f1ede3"}"/>`;
+    grid+=txt(mL-8, Y(v)+4, cfg.fmt(v), "end");
+  });
+
+  // x-Achse: Monatsanfänge
+  let months="";
+  const d=new Date(t0); d.setDate(1); d.setMonth(d.getMonth()+1);
+  for(; d.getTime()<=tEnd; d.setMonth(d.getMonth()+1)){
+    const x=X(d.getTime());
+    months+=`<line x1="${r1(x)}" x2="${r1(x)}" y1="${r1(Y(lo))}" y2="${r1(Y(lo)+4)}" stroke="#e0dccf"/>`;
+    months+=txt(x, H-6, MONATE[d.getMonth()]+(d.getMonth()===0?" "+d.getFullYear():""), "middle");
   }
-  const W=320,H=140,padL=10,padR=10,padT=14,padB=24;
-  const v=series.map(s=>s.wert), min=Math.min(...v), max=Math.max(...v), span=(max-min)||1;
-  const x=i=>padL+(W-padL-padR)*(i/(series.length-1));
-  const y=val=>padT+(H-padT-padB)*(1-(val-min)/span);
-  const line=series.map((s,i)=>`${i===0?"M":"L"}${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ");
-  const area=`M${x(0).toFixed(1)},${H-padB} `+series.map((s,i)=>`L${x(i).toFixed(1)},${y(s.wert).toFixed(1)}`).join(" ")+` L${x(series.length-1).toFixed(1)},${H-padB} Z`;
-  const dots=series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s.wert).toFixed(1)}" r="3" fill="#2f6b4f" stroke="#fff" stroke-width="1.5"/>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
-    <defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".16"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
-    <line x1="${padL}" y1="${(H-padB).toFixed(1)}" x2="${W-padR}" y2="${(H-padB).toFixed(1)}" stroke="#e7e2d6"/>
-    <path d="${area}" fill="url(#lcg)"/>
-    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>${dots}
-    <text x="${padL}" y="${(y(max)-4).toFixed(1)}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${fmt(max)}</text>
-    <text x="${padL}" y="${(y(min)+11).toFixed(1)}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${fmt(min)}</text>
-    <text x="${padL}" y="${H-7}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk">${formatMonth(series[0].datum)}</text>
-    <text x="${W-padR}" y="${H-7}" font-size="10" fill="#9b9a8c" font-family="Hanken Grotesk" text-anchor="end">${formatMonth(series[series.length-1].datum)}</text>
-  </svg>`;
+
+  const dots=s.map(p=>`<circle cx="${r1(X(new Date(p.datum).getTime()))}" cy="${r1(Y(p.wert))}" r="4" fill="#2f6b4f" stroke="#fff" stroke-width="2"/>`).join("");
+
+  el.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block">
+    <defs><linearGradient id="lcg-${el.dataset.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6b4f" stop-opacity=".14"/><stop offset="1" stop-color="#2f6b4f" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${months}
+    <path d="${area}" fill="url(#lcg-${el.dataset.key})"/>
+    <path d="${line}" fill="none" stroke="#2f6b4f" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+    <line class="lc-cross" y1="${mT}" y2="${r1(Y(lo))}" stroke="#b9b3a3" stroke-dasharray="3 3" visibility="hidden"/>
+    <circle class="lc-dot" r="5" fill="#2f6b4f" stroke="#fff" stroke-width="2" visibility="hidden"/>
+  </svg><div class="lc-tip"></div>`;
+  el._geo={ X, Y, t0, tEnd, s, mL, mR, W, fmt:cfg.fmt };
+}
+
+// Hover: Fadenkreuz + Tooltip mit dem Wert, der an diesem Tag galt
+function bindLineChartHover(el){
+  const hide=()=>{
+    el.querySelector('.lc-cross')?.setAttribute('visibility','hidden');
+    el.querySelector('.lc-dot')?.setAttribute('visibility','hidden');
+    const tip=el.querySelector('.lc-tip'); if(tip) tip.style.opacity=0;
+  };
+  el.addEventListener('pointerleave', hide);
+  el.addEventListener('pointermove', e=>{
+    const g=el._geo; if(!g) return;
+    const rect=el.getBoundingClientRect();
+    const x=Math.min(Math.max(e.clientX-rect.left, g.mL), g.W-g.mR);
+    const t=g.t0+(x-g.mL)/(g.W-g.mL-g.mR)*(g.tEnd-g.t0);
+    let p=g.s[0];
+    for(const q of g.s) if(new Date(q.datum).getTime()<=t) p=q;
+    const cross=el.querySelector('.lc-cross'), dot=el.querySelector('.lc-dot'), tip=el.querySelector('.lc-tip');
+    cross.setAttribute('x1',x); cross.setAttribute('x2',x); cross.setAttribute('visibility','visible');
+    dot.setAttribute('cx',x); dot.setAttribute('cy',g.Y(p.wert)); dot.setAttribute('visibility','visible');
+    tip.innerHTML=`<span>${formatDate(new Date(t).toISOString().slice(0,10))}</span><b>${g.fmt(p.wert)}</b>`;
+    const tw=tip.offsetWidth;
+    tip.style.left=Math.min(Math.max(x-tw/2, 0), g.W-tw)+"px";
+    tip.style.top=Math.max(g.Y(p.wert)-46, 0)+"px";
+    tip.style.opacity=1;
+  });
+}
+
+function initLineCharts(){
+  const els=[...document.querySelectorAll('.lc')];
+  els.forEach(el=>{ drawLineChart(el); bindLineChartHover(el); });
+  let timer;
+  window.addEventListener('resize', ()=>{ clearTimeout(timer); timer=setTimeout(()=>els.forEach(drawLineChart), 150); });
+}
+
+function reconstructMarket(history, flaecheById){
+  // Stichtage: jede Preis-/Pachtänderung und jeder Tag, an dem ein Haus vom Markt ging
+  const dates=new Set();
+  Object.values(history).forEach(h=>{
+    (h.punkte||[]).forEach(p=>dates.add(p.datum));
+    if(h.verkauft_am) dates.add(h.verkauft_am);
+  });
+  const sorted=[...dates].sort();
+  const priceSeries=[], qmSeries=[], pachtSeries=[], countSeries=[];
+  sorted.forEach(D=>{
+    const preise=[], qm=[], pachten=[];
+    Object.entries(history).forEach(([id,h])=>{
+      const pts=(h.punkte||[]).filter(p=>p.datum<=D);
+      if(!pts.length) return;
+      if(h.verkauft_am && D>=h.verkauft_am) return;
+      const last=pts[pts.length-1];
+      if(last.preis==null) return;
+      preise.push(last.preis);
+      if(last.pacht!=null) pachten.push(last.pacht);
+      const fl=h.flaeche || flaecheById[id];
+      if(fl) qm.push(last.preis/fl);
+    });
+    if(preise.length){ priceSeries.push({datum:D,wert:median(preise)}); countSeries.push({datum:D,wert:preise.length}); }
+    if(qm.length) qmSeries.push({datum:D,wert:median(qm)});
+    if(pachten.length) pachtSeries.push({datum:D,wert:median(pachten)});
+  });
+  return {priceSeries, qmSeries, pachtSeries, countSeries};
 }
 
 function badge(qm, medianQm){
@@ -312,28 +435,6 @@ function badge(qm, medianQm){
   return `<span class="badge mid">≈ Median</span>`;
 }
 
-function reconstructMarket(history, flaecheById){
-  const dates=new Set();
-  Object.values(history).forEach(h=>(h.punkte||[]).forEach(p=>dates.add(p.datum)));
-  const sorted=[...dates].sort();
-  const priceSeries=[], qmSeries=[], countSeries=[];
-  sorted.forEach(D=>{
-    const preise=[], qm=[];
-    Object.entries(history).forEach(([id,h])=>{
-      const pts=(h.punkte||[]).filter(p=>p.datum<=D);
-      if(!pts.length) return;
-      if(h.verkauft_am && D>=h.verkauft_am) return;
-      const preis=pts[pts.length-1].preis;
-      if(preis==null) return;
-      preise.push(preis);
-      const fl=h.flaeche || flaecheById[id];
-      if(fl) qm.push(preis/fl);
-    });
-    if(preise.length){ priceSeries.push({datum:D,wert:median(preise)}); countSeries.push({datum:D,wert:preise.length}); }
-    if(qm.length) qmSeries.push({datum:D,wert:median(qm)});
-  });
-  return {priceSeries, qmSeries, countSeries};
-}
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
 function formatDate(iso){ if(!iso) return "–"; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
 function todayIso(){ return new Date().toISOString().slice(0,10); }
@@ -545,8 +646,8 @@ function renderCosts(years){
 }
 
 Promise.all([
-  fetch('data/haeuser_final.geojson').then(r=>r.json()),
-  fetch('data/preis_historie.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+  fetch('data/haeuser_final.geojson',{cache:'no-cache'}).then(r=>r.json()),
+  fetch('data/preis_historie.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}))
 ]).then(([geo, history])=>{
   history=history||{};
   const root=document.getElementById('content');
@@ -598,12 +699,13 @@ Promise.all([
     </div>`;
     html+=`<p class="note">Bei kleiner Anzahl Angebote ist der Median aussagekräftiger als der Mittelwert.</p>`;
 
-    const {priceSeries, qmSeries, countSeries}=reconstructMarket(history, flaecheById);
-    html+=`<div class="section">Marktentwicklung über Zeit</div>`;
+    const {priceSeries, qmSeries, pachtSeries, countSeries}=reconstructMarket(history, flaecheById);
+    html+=`<div class="section">Marktentwicklung über Zeit <span class="count">Median aller Angebote am jeweiligen Tag</span></div>`;
     html+=`<div class="charts">
-      <div class="chart-card"><h3>Median-Preis</h3>${buildLineChart(priceSeries, formatPrice)}</div>
-      <div class="chart-card"><h3>Median €/m²</h3>${buildLineChart(qmSeries, formatPrice)}</div>
-      <div class="chart-card"><h3>Anzahl Angebote</h3>${buildLineChart(countSeries, v=>Math.round(v))}</div>
+      <div class="chart-card"><h3>Median-Preis</h3>${lineChartSlot("preis", priceSeries, formatPrice)}</div>
+      <div class="chart-card"><h3>Median €/m²</h3>${lineChartSlot("qm", qmSeries, formatPrice)}</div>
+      <div class="chart-card"><h3>Median-Pacht / Jahr</h3>${lineChartSlot("pacht", pachtSeries, formatPrice)}</div>
+      <div class="chart-card"><h3>Anzahl Angebote</h3>${lineChartSlot("anzahl", countSeries, v=>Math.round(v))}</div>
     </div>`;
 
     html+=`<div class="section">Preis &amp; Fläche im Vergleich</div>
@@ -690,6 +792,7 @@ Promise.all([
   }
 
   root.innerHTML = html || '<p class="empty">Keine Daten vorhanden.</p>';
+  initLineCharts();
   initOverview(geo, history, aktiv, sold);
   const ovEmpty=document.getElementById('ovEmpty');
   if(ovEmpty) ovEmpty.textContent = sold.length ? '' : 'Noch keine Verkäufe erfasst – verkaufte Häuser erscheinen hier automatisch.';

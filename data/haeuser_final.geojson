@@ -17168,7 +17168,7 @@
         "addr:street": "Rabenplatz",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 32000,
+        "preis": 26500,
         "pacht": 1461,
         "flaeche": 30
       },
@@ -26948,7 +26948,7 @@
         "addr:street": "Dachsgrund",
         "building": "yes",
         "status": "zu_verkaufen",
-        "preis": 45000,
+        "preis": 49000,
         "pacht": 1976,
         "flaeche": 40
       },

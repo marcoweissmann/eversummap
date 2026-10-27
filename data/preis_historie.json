@@ -139,7 +139,8 @@
       }
     ],
     "flaeche": 40,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-10-27"
   },
   "way/367295459": {
     "addr": "Rabenplatz 80",
@@ -212,7 +213,8 @@
       }
     ],
     "flaeche": 40,
-    "aktiv": true
+    "aktiv": false,
+    "verkauft_am": "2026-10-27"
   },
   "way/367352233": {
     "addr": "Hasenplatte 222",
